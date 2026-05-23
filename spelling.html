@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Spell Drop</title>
+<link rel="icon" href="axiom.ninja.ico" type="image/x-icon">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: radial-gradient(ellipse at top, #1b2a3f 0%, #0b1320 80%);
+    color: #e6e9ef;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #game {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+  #field {
+    position: absolute;
+    inset: 0;
+    touch-action: none;
+  }
+  #hud {
+    position: absolute;
+    top: env(safe-area-inset-top, 0);
+    left: 0;
+    right: 0;
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    z-index: 10;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+  }
+  #score {
+    font-size: 28px;
+    font-weight: 700;
+    color: #f5f7fa;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
+  }
+  #level {
+    font-size: 13px;
+    color: rgba(230, 233, 239, 0.6);
+    text-transform: uppercase;
+  }
+  .block {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 12px 18px;
+    background: linear-gradient(180deg, #4a6585 0%, #38506b 100%);
+    color: #f1f3f7;
+    border-radius: 12px;
+    font-size: clamp(16px, 4.6vw, 22px);
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    touch-action: none;
+    cursor: grab;
+    will-change: transform, background;
+    transition: background 0.12s, box-shadow 0.12s;
+  }
+  .block.dragging { cursor: grabbing; }
+  .block[data-dir="right"] {
+    background: linear-gradient(180deg, #4aa05f 0%, #357c47 100%);
+  }
+  .block[data-dir="left"] {
+    background: linear-gradient(180deg, #c14a4a 0%, #9b3333 100%);
+  }
+  .block.settled {
+    background: linear-gradient(180deg, #586676 0%, #3f4b59 100%);
+    color: rgba(241, 243, 247, 0.65);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    cursor: default;
+  }
+  .block.fast {
+    background: linear-gradient(180deg, #c14a4a 0%, #7a2828 100%);
+    box-shadow: 0 6px 20px rgba(193, 74, 74, 0.5);
+  }
+  #instructions {
+    position: absolute;
+    bottom: calc(env(safe-area-inset-bottom, 0) + 10px);
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 12px;
+    color: rgba(230, 233, 239, 0.4);
+    letter-spacing: 0.5px;
+    pointer-events: none;
+  }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(11, 19, 32, 0.85);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 20px;
+    text-align: center;
+  }
+  #overlay.hidden { display: none; }
+  #overlay h1 {
+    font-size: 38px;
+    margin: 0 0 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: linear-gradient(180deg, #f5f7fa 0%, #b8c2cd 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  #overlay p {
+    margin: 4px 0;
+    color: rgba(230, 233, 239, 0.75);
+    max-width: 320px;
+    line-height: 1.5;
+  }
+  #overlay button {
+    margin-top: 28px;
+    background: linear-gradient(180deg, #4a6585 0%, #38506b 100%);
+    color: #f1f3f7;
+    border: none;
+    padding: 14px 36px;
+    border-radius: 32px;
+    font-size: 16px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  #overlay button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
+  }
+  #overlay button:active { transform: translateY(0); }
+  .legend {
+    margin-top: 32px;
+    font-size: 12px;
+    color: rgba(230, 233, 239, 0.45);
+    max-width: 300px;
+    line-height: 1.7;
+  }
+  .arrow {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin: 0 2px;
+  }
+  .arrow.left  { background: rgba(193, 74, 74, 0.2); color: #e89090; }
+  .arrow.right { background: rgba(74, 160, 95, 0.2); color: #8fd6a4; }
+  .score-pop {
+    position: absolute;
+    pointer-events: none;
+    font-weight: 700;
+    font-size: 22px;
+    color: #8fd6a4;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    animation: floatUp 0.7s ease-out forwards;
+  }
+  @keyframes floatUp {
+    0%   { transform: translateY(0)   scale(0.7); opacity: 0; }
+    20%  { transform: translateY(-8px) scale(1.1); opacity: 1; }
+    100% { transform: translateY(-50px) scale(1); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="hud">
+    <span id="score">0</span>
+    <span id="level">Level 1</span>
+  </div>
+  <div id="field"></div>
+  <div id="instructions">
+    <span class="arrow left">&larr; misspelled</span>
+    <span class="arrow right">correctly spelled &rarr;</span>
+  </div>
+  <div id="overlay">
+    <h1 id="overlayTitle">Spell Drop</h1>
+    <p id="overlayMsg">Words fall from the sky. Swipe right if a word is spelled correctly &mdash; left if it&rsquo;s misspelled.</p>
+    <button id="startBtn">Start</button>
+    <div class="legend">
+      Be quick &mdash; be sure. Wrong swipes hit the wall and pile up.<br>
+      When the stack reaches the top, the game ends.
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  "use strict";
+
+  const PAIRS_BY_TIER = [
+    // Tier 0 - very common short words
+    [
+      { right: "friend",  wrong: "freind"  },
+      { right: "their",   wrong: "thier"   },
+      { right: "weird",   wrong: "wierd"   },
+      { right: "piece",   wrong: "peice"   },
+      { right: "field",   wrong: "feild"   },
+      { right: "truly",   wrong: "truely"  },
+      { right: "thief",   wrong: "theif"   },
+      { right: "eighth",  wrong: "eigth"   },
+      { right: "until",   wrong: "untill"  },
+      { right: "lying",   wrong: "lieing"  },
+      { right: "fierce",  wrong: "feirce"  },
+      { right: "niece",   wrong: "neice"   }
+    ],
+    // Tier 1
+    [
+      { right: "believe",  wrong: "beleive"  },
+      { right: "receive",  wrong: "recieve"  },
+      { right: "because",  wrong: "becuase"  },
+      { right: "finally",  wrong: "finaly"   },
+      { right: "tomorrow", wrong: "tommorow" },
+      { right: "happened", wrong: "happend"  },
+      { right: "address",  wrong: "adress"   },
+      { right: "amateur",  wrong: "amatuer"  },
+      { right: "calendar", wrong: "calender" },
+      { right: "weather",  wrong: "wether"   },
+      { right: "library",  wrong: "libary"   },
+      { right: "village",  wrong: "vilage"   }
+    ],
+    // Tier 2
+    [
+      { right: "separate",   wrong: "seperate"    },
+      { right: "definitely", wrong: "definately"  },
+      { right: "beginning",  wrong: "begining"    },
+      { right: "argument",   wrong: "arguement"   },
+      { right: "February",   wrong: "Febuary"     },
+      { right: "government", wrong: "goverment"   },
+      { right: "business",   wrong: "buisness"    },
+      { right: "foreign",    wrong: "foriegn"     },
+      { right: "grateful",   wrong: "greatful"    },
+      { right: "minuscule",  wrong: "miniscule"   },
+      { right: "athlete",    wrong: "athelete"    },
+      { right: "vacuum",     wrong: "vaccum"      }
+    ],
+    // Tier 3
+    [
+      { right: "necessary",   wrong: "neccessary"   },
+      { right: "occurred",    wrong: "occured"      },
+      { right: "recommend",   wrong: "reccomend"    },
+      { right: "environment", wrong: "enviroment"   },
+      { right: "restaurant",  wrong: "restaraunt"   },
+      { right: "conscience",  wrong: "concience"    },
+      { right: "embarrass",   wrong: "embarass"     },
+      { right: "guarantee",   wrong: "garantee"     },
+      { right: "cemetery",    wrong: "cemetary"     },
+      { right: "privilege",   wrong: "priviledge"   },
+      { right: "playwright",  wrong: "playwrite"    },
+      { right: "noticeable",  wrong: "noticable"    }
+    ],
+    // Tier 4
+    [
+      { right: "accommodate",   wrong: "accomodate"     },
+      { right: "entrepreneur",  wrong: "entreprenuer"   },
+      { right: "maintenance",   wrong: "maintainance"   },
+      { right: "millennium",    wrong: "millenium"      },
+      { right: "rhythm",        wrong: "rythm"          },
+      { right: "questionnaire", wrong: "questionaire"   },
+      { right: "bureaucracy",   wrong: "beaurocracy"    },
+      { right: "occasionally",  wrong: "occassionally"  },
+      { right: "liaison",       wrong: "liason"         },
+      { right: "mischievous",   wrong: "mischievious"   },
+      { right: "supersede",     wrong: "supercede"      },
+      { right: "consensus",     wrong: "concensus"      }
+    ]
+  ];
+
+  const field        = document.getElementById("field");
+  const scoreEl      = document.getElementById("score");
+  const levelEl      = document.getElementById("level");
+  const overlay      = document.getElementById("overlay");
+  const overlayTitle = document.getElementById("overlayTitle");
+  const overlayMsg   = document.getElementById("overlayMsg");
+  const startBtn     = document.getElementById("startBtn");
+
+  let fieldWidth, fieldHeight, floorY, ceilingY;
+  let blocks = [];
+  let score = 0;
+  let best = +(localStorage.getItem("spellDrop.best") || 0);
+  let running = false;
+  let lastTime = 0;
+  let spawnTimer = 0;
+
+  const SWIPE_THRESHOLD = 60;
+  const FLY_SPEED       = 1400;
+  const FAST_FALL_VY    = 760;
+  const BASE_FALL_VY    = 55;
+
+  function measureField() {
+    fieldWidth  = window.innerWidth;
+    fieldHeight = window.innerHeight;
+    floorY      = fieldHeight - 38;
+    ceilingY    = 56;
+  }
+
+  function tier() {
+    return Math.min(Math.floor(score / 6), PAIRS_BY_TIER.length - 1);
+  }
+
+  function fallSpeed() {
+    return BASE_FALL_VY + tier() * 14;
+  }
+
+  function spawnInterval() {
+    return Math.max(0.95, 2.3 - tier() * 0.27);
+  }
+
+  function pickPair() {
+    const t = tier();
+    const pool = [];
+    for (let i = 0; i <= t; i++) pool.push.apply(pool, PAIRS_BY_TIER[i]);
+    return pool[(Math.random() * pool.length) | 0];
+  }
+
+  function applyTransform(b) {
+    const rot = b.dragging ? (b.dragX / 28) : 0;
+    b.el.style.transform =
+      "translate(" + (b.x + b.dragX) + "px," + b.y + "px) rotate(" + rot + "deg)";
+  }
+
+  function updateHUD() {
+    scoreEl.textContent = score;
+    levelEl.textContent = "Level " + (tier() + 1);
+  }
+
+  function popScore(b) {
+    const pop = document.createElement("div");
+    pop.className = "score-pop";
+    pop.textContent = "+1";
+    pop.style.left = (b.x + b.width / 2 - 10) + "px";
+    pop.style.top  = (b.y) + "px";
+    field.appendChild(pop);
+    setTimeout(function () { pop.remove(); }, 750);
+  }
+
+  function spawn() {
+    const pair = pickPair();
+    const misspelled = Math.random() < 0.5;
+    const word = misspelled ? pair.wrong : pair.right;
+
+    const el = document.createElement("div");
+    el.className = "block";
+    el.textContent = word;
+    field.appendChild(el);
+
+    const width  = el.offsetWidth;
+    const height = el.offsetHeight;
+    const maxX   = Math.max(0, fieldWidth - width);
+    const x      = Math.random() * maxX;
+
+    const block = {
+      el: el,
+      word: word,
+      misspelled: misspelled,
+      x: x,
+      y: -height - 4,
+      vx: 0,
+      vy: fallSpeed(),
+      width: width,
+      height: height,
+      state: "falling",
+      dragX: 0,
+      dragging: false,
+      startX: 0
+    };
+    blocks.push(block);
+    attachSwipe(block);
+    applyTransform(block);
+  }
+
+  function attachSwipe(block) {
+    const el = block.el;
+
+    el.addEventListener("pointerdown", function (e) {
+      if (block.state !== "falling") return;
+      block.dragging = true;
+      block.startX = e.clientX;
+      block.dragX = 0;
+      try { el.setPointerCapture(e.pointerId); } catch (_) {}
+      el.classList.add("dragging");
+      e.preventDefault();
+    });
+
+    el.addEventListener("pointermove", function (e) {
+      if (!block.dragging) return;
+      block.dragX = e.clientX - block.startX;
+      applyTransform(block);
+      const d = block.dragX;
+      if      (d >  20) el.dataset.dir = "right";
+      else if (d < -20) el.dataset.dir = "left";
+      else              delete el.dataset.dir;
+    });
+
+    function finish() {
+      if (!block.dragging) return;
+      block.dragging = false;
+      el.classList.remove("dragging");
+      delete el.dataset.dir;
+
+      if (block.state !== "falling") {
+        block.dragX = 0;
+        applyTransform(block);
+        return;
+      }
+
+      if (Math.abs(block.dragX) > SWIPE_THRESHOLD) {
+        const userSaysCorrect = block.dragX > 0;
+        const actuallyCorrect = !block.misspelled;
+        const userRight = userSaysCorrect === actuallyCorrect;
+        const dir = block.dragX > 0 ? 1 : -1;
+
+        block.x += block.dragX;
+        block.dragX = 0;
+        block.vx = dir * FLY_SPEED;
+
+        if (userRight) {
+          block.state = "flying-correct";
+          score++;
+          updateHUD();
+          popScore(block);
+        } else {
+          block.state = "flying-wrong";
+          el.classList.add("fast");
+        }
+      } else {
+        block.dragX = 0;
+      }
+      applyTransform(block);
+    }
+
+    el.addEventListener("pointerup", finish);
+    el.addEventListener("pointercancel", finish);
+  }
+
+  function settleY(block) {
+    let stopY = floorY - block.height;
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      if (b === block || b.state !== "settled") continue;
+      if (block.x + block.width <= b.x) continue;
+      if (block.x >= b.x + b.width) continue;
+      const top = b.y - block.height;
+      if (top < stopY) stopY = top;
+    }
+    return stopY;
+  }
+
+  function step(dt) {
+    const next = [];
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+
+      if (b.state === "falling" || b.state === "falling-fast") {
+        b.y += b.vy * dt;
+        const stop = settleY(b);
+        if (b.y >= stop) {
+          b.y = stop;
+          b.state = "settled";
+          b.el.classList.add("settled");
+          if (b.y < ceilingY) {
+            applyTransform(b);
+            next.push(b);
+            blocks = next.concat(blocks.slice(i + 1));
+            gameOver();
+            return;
+          }
+        }
+      } else if (b.state === "flying-correct") {
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        if (b.x + b.width < -20 || b.x > fieldWidth + 20) {
+          b.state = "gone";
+          b.el.remove();
+          continue;
+        }
+      } else if (b.state === "flying-wrong") {
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        if (b.x < 0 || b.x + b.width > fieldWidth) {
+          b.x = Math.max(0, Math.min(fieldWidth - b.width, b.x));
+          b.vx = 0;
+          b.vy = FAST_FALL_VY;
+          b.state = "falling-fast";
+          b.el.classList.add("fast");
+        }
+      }
+
+      applyTransform(b);
+      next.push(b);
+    }
+    blocks = next;
+  }
+
+  function tick(t) {
+    if (!running) return;
+    if (!lastTime) lastTime = t;
+    const dt = Math.min(0.05, (t - lastTime) / 1000);
+    lastTime = t;
+
+    spawnTimer += dt;
+    if (spawnTimer >= spawnInterval()) {
+      spawnTimer = 0;
+      spawn();
+    }
+
+    step(dt);
+    if (running) requestAnimationFrame(tick);
+  }
+
+  function start() {
+    measureField();
+    for (let i = 0; i < blocks.length; i++) blocks[i].el.remove();
+    blocks = [];
+    score = 0;
+    spawnTimer = spawnInterval() - 0.6;
+    lastTime = 0;
+    updateHUD();
+    overlay.classList.add("hidden");
+    running = true;
+    spawn();
+    requestAnimationFrame(tick);
+  }
+
+  function gameOver() {
+    running = false;
+    if (score > best) {
+      best = score;
+      localStorage.setItem("spellDrop.best", String(best));
+    }
+    overlayTitle.textContent = "Stack Overflow";
+    overlayMsg.innerHTML =
+      "Score <b>" + score + "</b>" +
+      (best ? "  &middot;  Best <b>" + best + "</b>" : "");
+    startBtn.textContent = "Play again";
+    overlay.classList.remove("hidden");
+  }
+
+  startBtn.addEventListener("click", start);
+
+  window.addEventListener("resize", function () {
+    measureField();
+  });
+
+  measureField();
+  updateHUD();
+})();
+</script>
+</body>
+</html>
