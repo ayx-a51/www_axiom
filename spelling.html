@@ -802,6 +802,18 @@
     }
   });
 
+  // also catch contacts that were already active when a body entered the
+  // FLYING state - those would never fire a fresh collisionStart, leaving the
+  // body stuck grey and non-colliding with falling words
+  Events.on(engine, "collisionActive", function (ev) {
+    for (let k = 0; k < ev.pairs.length; k++) {
+      const pair = ev.pairs[k];
+      if (pair.bodyA.isSensor || pair.bodyB.isSensor) continue;
+      reveal(pair.bodyA);
+      reveal(pair.bodyB);
+    }
+  });
+
   function attachSwipe(block) {
     const el = block.el;
 
@@ -894,6 +906,20 @@
           continue;
         }
       } else if (b.state === "landed") {
+        // safety net: a penalty block that came to rest without ever
+        // triggering a contact event still gets revealed and rejoins
+        // normal collisions, so it can't sit grey blocking the stack
+        if (b.penalty && !b.revealed && (body.isSleeping || body.speed < 0.5)) {
+          reveal(body);
+        }
+        // if a body somehow escaped the floor, retire it instead of
+        // simulating it forever off-screen
+        if (body.position.y > fieldHeight + 400) {
+          Composite.remove(engine.world, body);
+          b.el.remove();
+          b.state = "gone";
+          continue;
+        }
         // stack reached the top: block resting (not just passing) above the line
         if (body.bounds.min.y < ceilingY && (body.isSleeping || body.speed < 0.2)) {
           b.overTime += dt;
