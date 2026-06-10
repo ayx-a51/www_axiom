@@ -160,6 +160,26 @@
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
   }
   #overlay button:active { transform: translateY(0); }
+  #langRow {
+    margin-top: 26px;
+    display: flex;
+    gap: 10px;
+  }
+  #overlay #langRow .lang {
+    margin-top: 0;
+    padding: 9px 18px;
+    font-size: 14px;
+    border-radius: 20px;
+    background: rgba(74, 101, 133, 0.25);
+    color: rgba(230, 233, 239, 0.7);
+    border: 1px solid rgba(230, 233, 239, 0.2);
+    box-shadow: none;
+  }
+  #overlay #langRow .lang.active {
+    background: linear-gradient(180deg, #4a6585 0%, #38506b 100%);
+    color: #f1f3f7;
+    border-color: rgba(230, 233, 239, 0.45);
+  }
   .legend {
     margin-top: 32px;
     font-size: 12px;
@@ -200,14 +220,19 @@
   <div id="field"></div>
   <div id="floor"></div>
   <div id="instructions">
-    <span class="arrow left">&larr; misspelled</span>
-    <span class="arrow right">correctly spelled &rarr;</span>
+    <span class="arrow left" id="hintLeft">&larr; misspelled</span>
+    <span class="arrow right" id="hintRight">correctly spelled &rarr;</span>
   </div>
   <div id="overlay">
     <h1 id="overlayTitle">Spell Drop</h1>
     <p id="overlayMsg">Words fall from the sky. Swipe right if a word is spelled correctly &mdash; left if it&rsquo;s misspelled.</p>
+    <div id="langRow">
+      <button class="lang" data-lang="en">English</button>
+      <button class="lang" data-lang="de">Deutsch</button>
+      <button class="lang" data-lang="fr">Fran&ccedil;ais</button>
+    </div>
     <button id="startBtn">Start</button>
-    <div class="legend">
+    <div class="legend" id="legend">
       Be quick &mdash; be sure. Wrong swipes hit the wall and pile up.<br>
       When the stack reaches the top, the game ends.
     </div>
@@ -218,154 +243,316 @@
 (function () {
   "use strict";
 
-  const PAIRS_BY_TIER = [
-    // Tier 0 - short, very common
-    [
-      { right: "friend",   wrong: "freind"   },
-      { right: "their",    wrong: "thier"    },
-      { right: "weird",    wrong: "wierd"    },
-      { right: "piece",    wrong: "peice"    },
-      { right: "field",    wrong: "feild"    },
-      { right: "truly",    wrong: "truely"   },
-      { right: "thief",    wrong: "theif"    },
-      { right: "eighth",   wrong: "eigth"    },
-      { right: "until",    wrong: "untill"   },
-      { right: "lying",    wrong: "lieing"   },
-      { right: "fierce",   wrong: "feirce"   },
-      { right: "niece",    wrong: "neice"    },
-      { right: "chief",    wrong: "cheif"    },
-      { right: "yield",    wrong: "yeild"    },
-      { right: "ceiling",  wrong: "cieling"  },
-      { right: "height",   wrong: "hieght"   },
-      { right: "writing",  wrong: "writting" },
-      { right: "coming",   wrong: "comming"  },
-      { right: "tongue",   wrong: "tounge"   },
-      { right: "across",   wrong: "accross"  },
-      { right: "already",  wrong: "allready" },
-      { right: "forty",    wrong: "fourty"   },
-      { right: "ninety",   wrong: "ninty"    },
-      { right: "finally",  wrong: "finaly"   },
-      { right: "again",    wrong: "agian"    },
-      { right: "really",   wrong: "realy"    },
-      { right: "people",   wrong: "peopel"   }
+  // word pairs per language, 5 difficulty tiers each;
+  // r = correct spelling, w = common misspelling (never a real word)
+  const WORDS = {
+    en: [
+      [ // tier 0
+        {r:"friend",w:"freind"},{r:"their",w:"thier"},
+        {r:"weird",w:"wierd"},{r:"piece",w:"peice"},
+        {r:"field",w:"feild"},{r:"truly",w:"truely"},
+        {r:"thief",w:"theif"},{r:"eighth",w:"eigth"},
+        {r:"until",w:"untill"},{r:"lying",w:"lieing"},
+        {r:"fierce",w:"feirce"},{r:"niece",w:"neice"},
+        {r:"chief",w:"cheif"},{r:"yield",w:"yeild"},
+        {r:"ceiling",w:"cieling"},{r:"height",w:"hieght"},
+        {r:"writing",w:"writting"},{r:"coming",w:"comming"},
+        {r:"tongue",w:"tounge"},{r:"across",w:"accross"},
+        {r:"already",w:"allready"},{r:"forty",w:"fourty"},
+        {r:"ninety",w:"ninty"},{r:"finally",w:"finaly"},
+        {r:"again",w:"agian"},{r:"really",w:"realy"},
+        {r:"people",w:"peopel"},{r:"always",w:"allways"},
+        {r:"almost",w:"allmost"},{r:"which",w:"wich"},
+        {r:"during",w:"dureing"},{r:"early",w:"erly"},
+        {r:"easy",w:"eazy"},{r:"enough",w:"enuff"},
+        {r:"every",w:"evry"},{r:"getting",w:"geting"},
+        {r:"guess",w:"gess"},{r:"hoping",w:"hopeing"},
+        {r:"little",w:"littel"},{r:"making",w:"makeing"},
+        {r:"many",w:"meny"},{r:"often",w:"offen"},
+        {r:"pretty",w:"prety"},{r:"said",w:"sed"},
+        {r:"school",w:"scool"},{r:"stopped",w:"stoped"},
+        {r:"sugar",w:"suger"},{r:"swimming",w:"swiming"},
+        {r:"taking",w:"takeing"},{r:"trouble",w:"truble"},
+        {r:"with",w:"whith"},{r:"Wednesday",w:"Wensday"}
     ],
-    // Tier 1 - medium-easy
-    [
-      { right: "believe",     wrong: "beleive"     },
-      { right: "receive",     wrong: "recieve"     },
-      { right: "because",     wrong: "becuase"     },
-      { right: "tomorrow",    wrong: "tommorow"    },
-      { right: "happened",    wrong: "happend"     },
-      { right: "address",     wrong: "adress"      },
-      { right: "amateur",     wrong: "amatuer"     },
-      { right: "calendar",    wrong: "calandar"    },
-      { right: "weather",     wrong: "wheather"    },
-      { right: "library",     wrong: "libary"      },
-      { right: "village",     wrong: "vilage"      },
-      { right: "familiar",    wrong: "familar"     },
-      { right: "license",     wrong: "lisence"     },
-      { right: "surprise",    wrong: "suprise"     },
-      { right: "successful",  wrong: "sucessful"   },
-      { right: "experience",  wrong: "experiance"  },
-      { right: "existence",   wrong: "existance"   },
-      { right: "foreign",     wrong: "foriegn"     },
-      { right: "relief",      wrong: "releif"      },
-      { right: "science",     wrong: "sceince"     },
-      { right: "league",      wrong: "leauge"      },
-      { right: "preferred",   wrong: "prefered"    },
-      { right: "pursue",      wrong: "persue"      },
-      { right: "beautiful",   wrong: "beutiful"    },
-      { right: "thought",     wrong: "thaught"     },
-      { right: "twelfth",     wrong: "twelveth"    }
+      [ // tier 1
+        {r:"believe",w:"beleive"},{r:"receive",w:"recieve"},
+        {r:"because",w:"becuase"},{r:"tomorrow",w:"tommorow"},
+        {r:"happened",w:"happend"},{r:"address",w:"adress"},
+        {r:"amateur",w:"amatuer"},{r:"calendar",w:"calandar"},
+        {r:"weather",w:"wheather"},{r:"library",w:"libary"},
+        {r:"village",w:"vilage"},{r:"familiar",w:"familar"},
+        {r:"license",w:"lisence"},{r:"surprise",w:"suprise"},
+        {r:"successful",w:"sucessful"},{r:"experience",w:"experiance"},
+        {r:"existence",w:"existance"},{r:"foreign",w:"foriegn"},
+        {r:"relief",w:"releif"},{r:"science",w:"sceince"},
+        {r:"league",w:"leauge"},{r:"preferred",w:"prefered"},
+        {r:"pursue",w:"persue"},{r:"beautiful",w:"beutiful"},
+        {r:"thought",w:"thaught"},{r:"twelfth",w:"twelveth"},
+        {r:"absence",w:"absense"},{r:"achieve",w:"acheive"},
+        {r:"basically",w:"basicly"},{r:"caught",w:"cauhgt"},
+        {r:"completely",w:"completly"},{r:"describe",w:"discribe"},
+        {r:"doctor",w:"docter"},{r:"especially",w:"expecially"},
+        {r:"exercise",w:"excercise"},{r:"generally",w:"generaly"},
+        {r:"happiness",w:"happyness"},{r:"imagine",w:"imagin"},
+        {r:"important",w:"importent"},{r:"instead",w:"insted"},
+        {r:"island",w:"iland"},{r:"lonely",w:"lonley"},
+        {r:"money",w:"monney"},{r:"neighbor",w:"nieghbor"},
+        {r:"opinion",w:"oppinion"},{r:"quarter",w:"quater"},
+        {r:"remember",w:"remeber"},{r:"sentence",w:"sentance"},
+        {r:"speech",w:"speach"},{r:"strength",w:"strenght"},
+        {r:"tried",w:"tryed"},{r:"usually",w:"usualy"}
     ],
-    // Tier 2
-    [
-      { right: "separate",    wrong: "seperate"    },
-      { right: "definitely",  wrong: "definately"  },
-      { right: "beginning",   wrong: "begining"    },
-      { right: "argument",    wrong: "arguement"   },
-      { right: "February",    wrong: "Febuary"     },
-      { right: "government",  wrong: "goverment"   },
-      { right: "business",    wrong: "buisness"    },
-      { right: "grateful",    wrong: "greatful"    },
-      { right: "different",   wrong: "diffrent"    },
-      { right: "athlete",     wrong: "athelete"    },
-      { right: "vacuum",      wrong: "vaccum"      },
-      { right: "column",      wrong: "colum"       },
-      { right: "harass",      wrong: "harrass"     },
-      { right: "humorous",    wrong: "humerous"    },
-      { right: "independent", wrong: "independant" },
-      { right: "knowledge",   wrong: "knowlege"    },
-      { right: "length",      wrong: "lenght"      },
-      { right: "permanent",   wrong: "permanant"   },
-      { right: "possess",     wrong: "posess"      },
-      { right: "repetition",  wrong: "repitition"  },
-      { right: "ridiculous",  wrong: "rediculous"  },
-      { right: "receipt",     wrong: "reciept"     },
-      { right: "interesting", wrong: "intresting"  },
-      { right: "decision",    wrong: "decison"     },
-      { right: "explanation", wrong: "explination" },
-      { right: "vehicle",     wrong: "vehical"     }
+      [ // tier 2
+        {r:"separate",w:"seperate"},{r:"definitely",w:"definately"},
+        {r:"beginning",w:"begining"},{r:"argument",w:"arguement"},
+        {r:"February",w:"Febuary"},{r:"government",w:"goverment"},
+        {r:"business",w:"buisness"},{r:"grateful",w:"greatful"},
+        {r:"different",w:"diffrent"},{r:"athlete",w:"athelete"},
+        {r:"vacuum",w:"vaccum"},{r:"column",w:"colum"},
+        {r:"harass",w:"harrass"},{r:"humorous",w:"humerous"},
+        {r:"independent",w:"independant"},{r:"knowledge",w:"knowlege"},
+        {r:"length",w:"lenght"},{r:"permanent",w:"permanant"},
+        {r:"possess",w:"posess"},{r:"repetition",w:"repitition"},
+        {r:"ridiculous",w:"rediculous"},{r:"receipt",w:"reciept"},
+        {r:"interesting",w:"intresting"},{r:"decision",w:"decison"},
+        {r:"explanation",w:"explination"},{r:"vehicle",w:"vehical"},
+        {r:"absolutely",w:"absolutly"},{r:"acceptable",w:"acceptible"},
+        {r:"accidentally",w:"accidentaly"},{r:"accomplish",w:"acomplish"},
+        {r:"appearance",w:"appearence"},{r:"aggressive",w:"agressive"},
+        {r:"amount",w:"ammount"},{r:"ancient",w:"anceint"},
+        {r:"apology",w:"appology"},{r:"audience",w:"audiance"},
+        {r:"average",w:"avrage"},{r:"awkward",w:"akward"},
+        {r:"bargain",w:"bargin"},{r:"brilliant",w:"brillant"},
+        {r:"category",w:"catagory"},{r:"committee",w:"commitee"},
+        {r:"competition",w:"compitition"},{r:"concentrate",w:"consentrate"},
+        {r:"curiosity",w:"curiousity"},{r:"deceive",w:"decieve"},
+        {r:"dictionary",w:"dictionery"},{r:"disease",w:"desease"},
+        {r:"divide",w:"devide"},{r:"excellent",w:"excellant"},
+        {r:"excitement",w:"exitement"},{r:"fascinating",w:"facinating"}
     ],
-    // Tier 3
-    [
-      { right: "necessary",     wrong: "neccessary"     },
-      { right: "occurred",      wrong: "occured"        },
-      { right: "recommend",     wrong: "reccomend"      },
-      { right: "environment",   wrong: "enviroment"     },
-      { right: "restaurant",    wrong: "restaraunt"     },
-      { right: "conscience",    wrong: "concience"      },
-      { right: "embarrass",     wrong: "embarass"       },
-      { right: "guarantee",     wrong: "garantee"       },
-      { right: "cemetery",      wrong: "cemetary"       },
-      { right: "privilege",     wrong: "priviledge"     },
-      { right: "noticeable",    wrong: "noticable"      },
-      { right: "guidance",      wrong: "guidence"       },
-      { right: "apparently",    wrong: "apparantly"     },
-      { right: "disappear",     wrong: "dissapear"      },
-      { right: "disappoint",    wrong: "dissapoint"     },
-      { right: "exaggerate",    wrong: "exagerate"      },
-      { right: "pronunciation", wrong: "pronounciation" },
-      { right: "medieval",      wrong: "medeival"       },
-      { right: "personnel",     wrong: "personel"       },
-      { right: "siege",         wrong: "seige"          },
-      { right: "playwright",    wrong: "playwrite"      },
-      { right: "discipline",    wrong: "disipline"      },
-      { right: "convenient",    wrong: "convienient"    },
-      { right: "leisure",       wrong: "liesure"        },
-      { right: "relevant",      wrong: "relevent"       },
-      { right: "jealous",       wrong: "jelous"         }
+      [ // tier 3
+        {r:"necessary",w:"neccessary"},{r:"occurred",w:"occured"},
+        {r:"recommend",w:"reccomend"},{r:"environment",w:"enviroment"},
+        {r:"restaurant",w:"restaraunt"},{r:"conscience",w:"concience"},
+        {r:"embarrass",w:"embarass"},{r:"guarantee",w:"garantee"},
+        {r:"cemetery",w:"cemetary"},{r:"privilege",w:"priviledge"},
+        {r:"noticeable",w:"noticable"},{r:"guidance",w:"guidence"},
+        {r:"apparently",w:"apparantly"},{r:"disappear",w:"dissapear"},
+        {r:"disappoint",w:"dissapoint"},{r:"exaggerate",w:"exagerate"},
+        {r:"pronunciation",w:"pronounciation"},{r:"medieval",w:"medeival"},
+        {r:"personnel",w:"personel"},{r:"siege",w:"seige"},
+        {r:"playwright",w:"playwrite"},{r:"discipline",w:"disipline"},
+        {r:"convenient",w:"convienient"},{r:"leisure",w:"liesure"},
+        {r:"relevant",w:"relevent"},{r:"jealous",w:"jelous"},
+        {r:"acquaintance",w:"aquaintance"},{r:"anonymous",w:"anonymus"},
+        {r:"architecture",w:"arcitecture"},{r:"assassinate",w:"assasinate"},
+        {r:"atmosphere",w:"atmosfere"},{r:"boundary",w:"boundry"},
+        {r:"bulletin",w:"bulliten"},{r:"candidate",w:"canidate"},
+        {r:"colleague",w:"collegue"},{r:"colossal",w:"collosal"},
+        {r:"competent",w:"competant"},{r:"condemn",w:"condem"},
+        {r:"criticism",w:"critisism"},{r:"dilemma",w:"dilemna"},
+        {r:"eligible",w:"elligible"},{r:"eliminate",w:"elimanate"},
+        {r:"exhausted",w:"exausted"},{r:"gauge",w:"guage"},
+        {r:"grammar",w:"grammer"},{r:"guardian",w:"gaurdian"},
+        {r:"hygiene",w:"hygene"},{r:"immediately",w:"immediatly"},
+        {r:"intelligence",w:"inteligence"},{r:"interrupt",w:"interupt"},
+        {r:"laboratory",w:"labratory"},{r:"marriage",w:"marrige"}
     ],
-    // Tier 4 - hardest
-    [
-      { right: "accommodate",    wrong: "accomodate"     },
-      { right: "entrepreneur",   wrong: "entreprenuer"   },
-      { right: "maintenance",    wrong: "maintainance"   },
-      { right: "millennium",     wrong: "millenium"      },
-      { right: "rhythm",         wrong: "rythm"          },
-      { right: "questionnaire",  wrong: "questionaire"   },
-      { right: "bureaucracy",    wrong: "beaurocracy"    },
-      { right: "occasionally",   wrong: "occassionally"  },
-      { right: "liaison",        wrong: "liason"         },
-      { right: "mischievous",    wrong: "mischievious"   },
-      { right: "pharaoh",        wrong: "pharoah"        },
-      { right: "consensus",      wrong: "concensus"      },
-      { right: "camouflage",     wrong: "camoflage"      },
-      { right: "chauffeur",      wrong: "chaufeur"       },
-      { right: "hierarchy",      wrong: "heirarchy"      },
-      { right: "inoculate",      wrong: "innoculate"     },
-      { right: "perseverance",   wrong: "perserverance"  },
-      { right: "pseudonym",      wrong: "psuedonym"      },
-      { right: "itinerary",      wrong: "itenarary"      },
-      { right: "surveillance",   wrong: "surveilance"    },
-      { right: "acquire",        wrong: "aquire"         },
-      { right: "exhilarate",     wrong: "exilerate"      },
-      { right: "fluorescent",    wrong: "flourescent"    },
-      { right: "indispensable",  wrong: "indispensible"  },
-      { right: "reminiscent",    wrong: "reminescent"    },
-      { right: "conscientious",  wrong: "conscientous"   }
+      [ // tier 4
+        {r:"accommodate",w:"accomodate"},{r:"entrepreneur",w:"entreprenuer"},
+        {r:"maintenance",w:"maintainance"},{r:"millennium",w:"millenium"},
+        {r:"rhythm",w:"rythm"},{r:"questionnaire",w:"questionaire"},
+        {r:"bureaucracy",w:"beaurocracy"},{r:"occasionally",w:"occassionally"},
+        {r:"liaison",w:"liason"},{r:"mischievous",w:"mischievious"},
+        {r:"pharaoh",w:"pharoah"},{r:"consensus",w:"concensus"},
+        {r:"camouflage",w:"camoflage"},{r:"chauffeur",w:"chaufeur"},
+        {r:"hierarchy",w:"heirarchy"},{r:"inoculate",w:"innoculate"},
+        {r:"perseverance",w:"perserverance"},{r:"pseudonym",w:"psuedonym"},
+        {r:"itinerary",w:"itenarary"},{r:"surveillance",w:"surveilance"},
+        {r:"acquire",w:"aquire"},{r:"exhilarate",w:"exilerate"},
+        {r:"fluorescent",w:"flourescent"},{r:"indispensable",w:"indispensible"},
+        {r:"reminiscent",w:"reminescent"},{r:"conscientious",w:"conscientous"},
+        {r:"abbreviation",w:"abreviation"},{r:"accessible",w:"accessable"},
+        {r:"annihilate",w:"anihilate"},{r:"auxiliary",w:"auxillary"},
+        {r:"broccoli",w:"brocolli"},{r:"cappuccino",w:"cappucino"},
+        {r:"Caribbean",w:"Carribean"},{r:"catastrophe",w:"catastrophy"},
+        {r:"changeable",w:"changable"},{r:"colonel",w:"colonal"},
+        {r:"commemorate",w:"comemorate"},{r:"connoisseur",w:"connisseur"},
+        {r:"correspondence",w:"correspondance"},{r:"diarrhea",w:"diarhea"},
+        {r:"dumbbell",w:"dumbell"},{r:"Fahrenheit",w:"Farenheit"},
+        {r:"fuchsia",w:"fuschia"},{r:"handkerchief",w:"hankerchief"},
+        {r:"jeopardize",w:"jepardize"},{r:"kindergarten",w:"kindergarden"},
+        {r:"Parliament",w:"Parliment"},{r:"pneumonia",w:"neumonia"},
+        {r:"precede",w:"preceed"},{r:"raspberry",w:"rasberry"},
+        {r:"silhouette",w:"silouette"},{r:"sophomore",w:"sophmore"}
     ]
-  ];
+    ],
+    de: [
+      [ // tier 0
+        {r:"bisschen",w:"bischen"},{r:"Fahrrad",w:"Farrad"},
+        {r:"Geburtstag",w:"Geburstag"},{r:"nämlich",w:"nähmlich"},
+        {r:"nehmen",w:"nemen"},{r:"plötzlich",w:"plözlich"},
+        {r:"vielleicht",w:"villeicht"},{r:"wirklich",w:"würklich"},
+        {r:"ziemlich",w:"zimlich"},{r:"zusammen",w:"zusamen"},
+        {r:"Adresse",w:"Addresse"},{r:"bezahlen",w:"bezalen"},
+        {r:"danach",w:"dannach"},{r:"endlich",w:"entlich"},
+        {r:"Familie",w:"Famielie"},{r:"heißen",w:"heisen"},
+        {r:"jetzt",w:"jezt"},{r:"kaputt",w:"kaput"},
+        {r:"Nachmittag",w:"Nachmitag"},{r:"trotzdem",w:"trozdem"},
+        {r:"übrigens",w:"übrigends"},{r:"zufrieden",w:"zufriden"},
+        {r:"zurück",w:"zurük"},{r:"kommen",w:"komen"},
+        {r:"gibt",w:"giebt"},{r:"Mädchen",w:"Mädschen"},
+        {r:"natürlich",w:"naturlich"},{r:"Onkel",w:"Onkle"}
+    ],
+      [ // tier 1
+        {r:"Aggression",w:"Agression"},{r:"Attraktion",w:"Atraktion"},
+        {r:"auseinander",w:"ausseinander"},{r:"beziehungsweise",w:"beziehungsweiße"},
+        {r:"definitiv",w:"defenitiv"},{r:"deshalb",w:"desshalb"},
+        {r:"Diskussion",w:"Disskussion"},{r:"eigentlich",w:"eigendlich"},
+        {r:"Geheimnis",w:"Geheimniss"},{r:"gemütlich",w:"gemühtlich"},
+        {r:"Hobby",w:"Hobbie"},{r:"Interesse",w:"Intresse"},
+        {r:"Kalender",w:"Kalendar"},{r:"Kommentar",w:"Komentar"},
+        {r:"Maschine",w:"Maschiene"},{r:"Material",w:"Matterial"},
+        {r:"Medizin",w:"Medezin"},{r:"Million",w:"Milion"},
+        {r:"offiziell",w:"offiziel"},{r:"Original",w:"Orginal"},
+        {r:"Papier",w:"Papir"},{r:"parallel",w:"paralell"},
+        {r:"Projekt",w:"Project"},{r:"Reparatur",w:"Reperatur"},
+        {r:"Restaurant",w:"Restorant"},{r:"separat",w:"seperat"},
+        {r:"Toilette",w:"Toilete"},{r:"wahrscheinlich",w:"warscheinlich"},
+        {r:"während",w:"wärend"}
+    ],
+      [ // tier 2
+        {r:"Apparat",w:"Aparat"},{r:"Appetit",w:"Apetit"},
+        {r:"authentisch",w:"autentisch"},{r:"Bibliothek",w:"Bibliotek"},
+        {r:"brillant",w:"brilliant"},{r:"Karussell",w:"Karussel"},
+        {r:"Dilettant",w:"Dilletant"},{r:"Disziplin",w:"Disiplin"},
+        {r:"Galerie",w:"Gallerie"},{r:"Garderobe",w:"Gardrobe"},
+        {r:"Gelatine",w:"Gelantine"},{r:"hervorragend",w:"herforragend"},
+        {r:"Ingenieur",w:"Ingeneur"},{r:"Installation",w:"Instalation"},
+        {r:"Jubiläum",w:"Jubileum"},{r:"Kampagne",w:"Kampange"},
+        {r:"Karriere",w:"Kariere"},{r:"Katastrophe",w:"Katastrofe"},
+        {r:"Kommissar",w:"Komissar"},{r:"Konkurrenz",w:"Konkurenz"},
+        {r:"Kontrolle",w:"Kontrole"},{r:"Lizenz",w:"Lizens"},
+        {r:"Niveau",w:"Nivo"},{r:"Paket",w:"Packet"},
+        {r:"Pubertät",w:"Puberität"},{r:"Satellit",w:"Sattelit"},
+        {r:"Standard",w:"Standart"},{r:"Terrasse",w:"Terasse"}
+    ],
+      [ // tier 3
+        {r:"Rhythmus",w:"Rythmus"},{r:"Triumph",w:"Triumpf"},
+        {r:"violett",w:"violet"},{r:"Zucchini",w:"Zuccini"},
+        {r:"Abonnement",w:"Abonement"},{r:"Akquise",w:"Aquise"},
+        {r:"Atmosphäre",w:"Atmosfäre"},{r:"autorisieren",w:"authorisieren"},
+        {r:"Ekstase",w:"Extase"},{r:"Epidemie",w:"Epedemie"},
+        {r:"existieren",w:"exestieren"},{r:"Hierarchie",w:"Hirarchie"},
+        {r:"Imbiss",w:"Imbis"},{r:"Initiative",w:"Iniziative"},
+        {r:"Kompromiss",w:"Kompromis"},{r:"Mechanismus",w:"Mechanizmus"},
+        {r:"Millennium",w:"Millenium"},{r:"Opposition",w:"Oposition"},
+        {r:"Phänomen",w:"Fänomen"},{r:"Physik",w:"Phisik"},
+        {r:"Position",w:"Possition"},{r:"Prophezeiung",w:"Prophezeihung"},
+        {r:"Pyramide",w:"Piramide"},{r:"Referenz",w:"Refferenz"},
+        {r:"Ressource",w:"Resource"},{r:"Rückgrat",w:"Rückgrad"},
+        {r:"Sympathie",w:"Symphatie"},{r:"Theorie",w:"Teorie"}
+    ],
+      [ // tier 4
+        {r:"Accessoire",w:"Accessoir"},{r:"Chrysantheme",w:"Crysantheme"},
+        {r:"Diphtherie",w:"Diphterie"},{r:"Eukalyptus",w:"Eucalyptus"},
+        {r:"Euphorie",w:"Euforie"},{r:"Gnocchi",w:"Gnotschi"},
+        {r:"Hämorrhoiden",w:"Hämoriden"},{r:"Honorar",w:"Honnorar"},
+        {r:"Hygiene",w:"Higiene"},{r:"Idylle",w:"Idyle"},
+        {r:"Justiz",w:"Justitz"},{r:"Kommilitone",w:"Komilitone"},
+        {r:"Labyrinth",w:"Labyrint"},{r:"Lakritze",w:"Lackritze"},
+        {r:"Liaison",w:"Liason"},{r:"Mannequin",w:"Manequin"},
+        {r:"Massaker",w:"Massacker"},{r:"Matratze",w:"Matraze"},
+        {r:"Mayonnaise",w:"Majonaise"},{r:"Mozzarella",w:"Mozarella"},
+        {r:"Ouvertüre",w:"Overtüre"},{r:"Pirouette",w:"Piruette"},
+        {r:"Porzellan",w:"Porzelan"},{r:"Privileg",w:"Priveleg"},
+        {r:"Renaissance",w:"Renaisance"},{r:"Rendezvous",w:"Rendevous"},
+        {r:"Skelett",w:"Skellet"},{r:"Souvenir",w:"Souvenier"}
+    ]
+    ],
+    fr: [
+      [ // tier 0
+        {r:"beaucoup",w:"beacoup"},{r:"toujours",w:"toujour"},
+        {r:"aujourd'hui",w:"aujourdhui"},{r:"maintenant",w:"maintenent"},
+        {r:"merci",w:"mercie"},{r:"bientôt",w:"bientot"},
+        {r:"école",w:"écolle"},{r:"famille",w:"famile"},
+        {r:"garçon",w:"garcon"},{r:"longtemps",w:"longtemp"},
+        {r:"mieux",w:"mieu"},{r:"monsieur",w:"monsieu"},
+        {r:"parce que",w:"parceque"},{r:"pourquoi",w:"pourqoi"},
+        {r:"raison",w:"raisson"},{r:"salut",w:"salu"},
+        {r:"souvent",w:"souvant"},{r:"vraiment",w:"vraiement"},
+        {r:"déjà",w:"deja"},{r:"très",w:"tres"},
+        {r:"voiture",w:"voitur"},{r:"jamais",w:"jamai"},
+        {r:"depuis",w:"depui"},{r:"dehors",w:"dehor"},
+        {r:"froid",w:"froit"},{r:"plusieurs",w:"plusieur"}
+    ],
+      [ // tier 1
+        {r:"accueil",w:"acceuil"},{r:"adresse",w:"addresse"},
+        {r:"appeler",w:"appeller"},{r:"apercevoir",w:"appercevoir"},
+        {r:"attention",w:"atention"},{r:"bibliothèque",w:"bibliotèque"},
+        {r:"certainement",w:"certainnement"},{r:"commencer",w:"comencer"},
+        {r:"connexion",w:"connection"},{r:"courrier",w:"courier"},
+        {r:"deuxième",w:"deuxieme"},{r:"développer",w:"dévelloper"},
+        {r:"différent",w:"diférent"},{r:"difficile",w:"dificile"},
+        {r:"dommage",w:"domage"},{r:"ennemi",w:"enemi"},
+        {r:"environnement",w:"environement"},{r:"exemple",w:"example"},
+        {r:"intéressant",w:"intérressant"},{r:"langage",w:"language"},
+        {r:"magasin",w:"magazin"},{r:"mariage",w:"marriage"},
+        {r:"nécessaire",w:"nécéssaire"},{r:"nourriture",w:"nouriture"},
+        {r:"occupé",w:"ocupé"},{r:"personne",w:"persone"},
+        {r:"professeur",w:"proffesseur"},{r:"recommander",w:"recomander"}
+    ],
+      [ // tier 2
+        {r:"réussir",w:"réusir"},{r:"vacances",w:"vaccances"},
+        {r:"apparaître",w:"aparaître"},{r:"appartement",w:"apartement"},
+        {r:"arrêter",w:"arêter"},{r:"carrefour",w:"carefour"},
+        {r:"cauchemar",w:"cauchemard"},{r:"civilisation",w:"civilization"},
+        {r:"colonne",w:"collone"},{r:"combattant",w:"combatant"},
+        {r:"commerçant",w:"commercant"},{r:"concurrence",w:"concurence"},
+        {r:"consonne",w:"consone"},{r:"correspondance",w:"correspondence"},
+        {r:"courageux",w:"couragueux"},{r:"embarrasser",w:"embarasser"},
+        {r:"emmener",w:"emener"},{r:"ennuyeux",w:"enuyeux"},
+        {r:"enveloppe",w:"envelope"},{r:"exagérer",w:"éxagérer"},
+        {r:"excellent",w:"excelent"},{r:"fourmi",w:"fourmie"},
+        {r:"girafe",w:"giraffe"},{r:"grammaire",w:"gramaire"},
+        {r:"hasard",w:"hazard"},{r:"intelligent",w:"inteligent"},
+        {r:"littérature",w:"litérature"},{r:"malgré",w:"malgrés"}
+    ],
+      [ // tier 3
+        {r:"parmi",w:"parmis"},{r:"occasion",w:"ocasion"},
+        {r:"occurrence",w:"occurence"},{r:"orthographe",w:"ortographe"},
+        {r:"accommoder",w:"accomoder"},{r:"acquérir",w:"aquérir"},
+        {r:"additionner",w:"aditionner"},{r:"agressif",w:"aggressif"},
+        {r:"appuyer",w:"apuyer"},{r:"bizarre",w:"bizare"},
+        {r:"bonhomme",w:"bonhome"},{r:"carrousel",w:"carousel"},
+        {r:"cellule",w:"célule"},{r:"cimetière",w:"cimetierre"},
+        {r:"commémorer",w:"comémorer"},{r:"connaissance",w:"conaissance"},
+        {r:"déçu",w:"décu"},{r:"dictionnaire",w:"dictionaire"},
+        {r:"différemment",w:"différament"},{r:"exception",w:"exeption"},
+        {r:"fonctionnel",w:"fonctionel"},{r:"irrésistible",w:"irrésistable"},
+        {r:"millier",w:"milier"},{r:"millionnaire",w:"millionaire"},
+        {r:"nourrir",w:"nourir"},{r:"officiel",w:"oficiel"},
+        {r:"personnel",w:"personel"},{r:"pharmacie",w:"farmacie"}
+    ],
+      [ // tier 4
+        {r:"professionnel",w:"professionel"},{r:"recueillir",w:"receuillir"},
+        {r:"succès",w:"succés"},{r:"suggérer",w:"sugérer"},
+        {r:"traditionnel",w:"traditionel"},{r:"acupuncture",w:"accupuncture"},
+        {r:"appartenance",w:"apartenance"},{r:"atterrir",w:"aterrir"},
+        {r:"chrysanthème",w:"chrysantème"},{r:"déchiffrer",w:"déchifrer"},
+        {r:"dilemme",w:"dilemne"},{r:"échalote",w:"échalotte"},
+        {r:"envergure",w:"anvergure"},{r:"étymologie",w:"éthymologie"},
+        {r:"exorbitant",w:"exhorbitant"},{r:"fauteuil",w:"fauteuille"},
+        {r:"hippopotame",w:"hipopotame"},{r:"hypothèse",w:"hipothèse"},
+        {r:"indispensable",w:"indispensible"},{r:"infarctus",w:"infractus"},
+        {r:"libellule",w:"libélule"},{r:"mnémotechnique",w:"mémotechnique"},
+        {r:"obnubiler",w:"omnubiler"},{r:"parallèle",w:"paralèle"},
+        {r:"pécuniaire",w:"pécunier"},{r:"rémunération",w:"rénumération"},
+        {r:"résurrection",w:"résurection"},{r:"rhinocéros",w:"rinocéros"}
+    ]
+    ]
+  };
 
   const gameEl       = document.getElementById("game");
   const field        = document.getElementById("field");
@@ -378,10 +565,37 @@
 
   const { Engine, Bodies, Body, Composite, Events } = Matter;
 
+  const I18N = {
+    en: {
+      tagline: "Words fall from the sky. Swipe right if a word is spelled correctly &mdash; left if it&rsquo;s misspelled.",
+      legend: "Be quick &mdash; be sure. Wrong swipes hit the wall and pile up.<br>When the stack reaches the top, the game ends.",
+      hintLeft: "&larr; misspelled", hintRight: "correctly spelled &rarr;",
+      level: "Level", start: "Start", again: "Play again",
+      over: "Stack Overflow", scoreLbl: "Score", bestLbl: "Best"
+    },
+    de: {
+      tagline: "W&ouml;rter fallen vom Himmel. Wische nach rechts, wenn ein Wort richtig geschrieben ist &mdash; nach links, wenn es falsch ist.",
+      legend: "Sei schnell &mdash; sei sicher. Falsche Wischer prallen an die Wand und stapeln sich.<br>Erreicht der Stapel die Decke, ist das Spiel vorbei.",
+      hintLeft: "&larr; falsch geschrieben", hintRight: "richtig geschrieben &rarr;",
+      level: "Stufe", start: "Los", again: "Nochmal",
+      over: "Stack Overflow", scoreLbl: "Punkte", bestLbl: "Rekord"
+    },
+    fr: {
+      tagline: "Des mots tombent du ciel. Glisse &agrave; droite si un mot est bien orthographi&eacute; &mdash; &agrave; gauche s&rsquo;il est mal &eacute;crit.",
+      legend: "Sois rapide &mdash; sois s&ucirc;r. Les mauvais choix heurtent le mur et s&rsquo;empilent.<br>Quand la pile atteint le haut, la partie est finie.",
+      hintLeft: "&larr; mal orthographi&eacute;", hintRight: "bien orthographi&eacute; &rarr;",
+      level: "Niveau", start: "D&eacute;marrer", again: "Rejouer",
+      over: "Stack Overflow", scoreLbl: "Score", bestLbl: "Record"
+    }
+  };
+
+  let lang = localStorage.getItem("spellDrop.lang");
+  if (!WORDS[lang]) lang = "en";
+
   let fieldWidth, fieldHeight, floorY, ceilingY;
   let blocks = [];
   let score = 0;
-  let best = +(localStorage.getItem("spellDrop.best") || 0);
+  let best = +(localStorage.getItem("spellDrop.best." + lang) || 0);
   let running = false;
   let lastTime = 0;
   let spawnTimer = 0;
@@ -434,7 +648,7 @@
   }
 
   function tier() {
-    return Math.min(Math.floor(score / 6), PAIRS_BY_TIER.length - 1);
+    return Math.min(Math.floor(score / 6), WORDS[lang].length - 1);
   }
 
   function fallSpeed() {
@@ -449,21 +663,22 @@
   let recentWords = [];
 
   function pickPair() {
+    const tiers = WORDS[lang];
     const t = tier();
     const pool = [];
-    for (let i = 0; i <= t; i++) pool.push.apply(pool, PAIRS_BY_TIER[i]);
+    for (let i = 0; i <= t; i++) pool.push.apply(pool, tiers[i]);
     let pair = pool[(Math.random() * pool.length) | 0];
-    for (let tries = 0; tries < 15 && recentWords.indexOf(pair.right) !== -1; tries++) {
+    for (let tries = 0; tries < 15 && recentWords.indexOf(pair.r) !== -1; tries++) {
       pair = pool[(Math.random() * pool.length) | 0];
     }
-    recentWords.push(pair.right);
+    recentWords.push(pair.r);
     if (recentWords.length > RECENT_LIMIT) recentWords.shift();
     return pair;
   }
 
   function updateHUD() {
     scoreEl.textContent = score;
-    levelEl.textContent = "Level " + (tier() + 1);
+    levelEl.textContent = I18N[lang].level + " " + (tier() + 1);
   }
 
   function popScore(b) {
@@ -504,7 +719,7 @@
   function spawn() {
     const pair = pickPair();
     const misspelled = Math.random() < 0.5;
-    const word = misspelled ? pair.wrong : pair.right;
+    const word = misspelled ? pair.w : pair.r;
 
     const el = document.createElement("div");
     el.className = "block";
@@ -741,17 +956,43 @@
 
   function gameOver() {
     running = false;
+    const t = I18N[lang];
     if (score > best) {
       best = score;
-      localStorage.setItem("spellDrop.best", String(best));
+      localStorage.setItem("spellDrop.best." + lang, String(best));
     }
-    overlayTitle.textContent = "Stack Overflow";
+    overlayTitle.textContent = t.over;
     overlayMsg.innerHTML =
-      "Score <b>" + score + "</b>" +
-      (best ? "  &middot;  Best <b>" + best + "</b>" : "");
-    startBtn.textContent = "Play again";
+      t.scoreLbl + " <b>" + score + "</b>" +
+      (best ? "  &middot;  " + t.bestLbl + " <b>" + best + "</b>" : "");
+    startBtn.textContent = t.again;
     overlay.classList.remove("hidden");
   }
+
+  const langButtons = document.querySelectorAll("#langRow .lang");
+
+  function applyLang() {
+    const t = I18N[lang];
+    document.getElementById("hintLeft").innerHTML  = t.hintLeft;
+    document.getElementById("hintRight").innerHTML = t.hintRight;
+    document.getElementById("legend").innerHTML    = t.legend;
+    overlayMsg.innerHTML = t.tagline;
+    startBtn.textContent = t.start;
+    langButtons.forEach(function (btn) {
+      btn.classList.toggle("active", btn.dataset.lang === lang);
+    });
+    best = +(localStorage.getItem("spellDrop.best." + lang) || 0);
+    updateHUD();
+  }
+
+  langButtons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      lang = btn.dataset.lang;
+      localStorage.setItem("spellDrop.lang", lang);
+      recentWords = [];
+      applyLang();
+    });
+  });
 
   startBtn.addEventListener("click", start);
 
@@ -761,7 +1002,7 @@
   });
 
   measureField();
-  updateHUD();
+  applyLang();
 })();
 </script>
 </body>
