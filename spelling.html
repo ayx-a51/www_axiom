@@ -396,6 +396,16 @@
   const engine = Engine.create({ enableSleeping: true });
   let walls = [];
 
+  // collision categories: a swiped block in flight must not hit words that
+  // are still falling, but everything collides again once it has impacted
+  const CAT_WORLD   = 0x0001; // walls + floor
+  const CAT_FALLING = 0x0002;
+  const CAT_SETTLED = 0x0004;
+  const CAT_FLYING  = 0x0008; // wrong swipe, pre-impact
+  const MASK_FALLING = CAT_WORLD | CAT_FALLING | CAT_SETTLED;
+  const MASK_ALL     = CAT_WORLD | CAT_FALLING | CAT_SETTLED | CAT_FLYING;
+  const MASK_FLYING  = CAT_WORLD | CAT_SETTLED | CAT_FLYING;
+
   function measureField() {
     // measure the game element, not the window: 100dvh and window.innerHeight
     // can disagree on mobile, which made the physics floor float above the
@@ -510,7 +520,8 @@
       restitution: 0.25,
       frictionAir: 0.01,
       chamfer: { radius: 3 },
-      sleepThreshold: 45
+      sleepThreshold: 45,
+      collisionFilter: { category: CAT_FALLING, mask: MASK_FALLING }
     });
 
     const block = {
@@ -538,16 +549,20 @@
 
   function land(block) {
     block.state = "landed";
+    block.body.collisionFilter.category = CAT_SETTLED;
+    block.body.collisionFilter.mask = MASK_ALL;
     if (!block.penalty) block.el.classList.add("settled");
   }
 
-  // first contact with anything hands the block over to the engine
-  // a wrongly swiped block shows its color only when it first hits something
+  // a wrongly swiped block shows its color and rejoins normal collisions
+  // only when it first hits something (wall, floor or stack)
   function reveal(body) {
     const blk = body.plugin && body.plugin.block;
     if (blk && blk.penalty && !blk.revealed) {
       blk.revealed = true;
       blk.el.classList.add("fast");
+      body.collisionFilter.category = CAT_SETTLED;
+      body.collisionFilter.mask = MASK_ALL;
     }
   }
 
@@ -610,6 +625,9 @@
           // spin. The red reveal waits until the first impact.
           block.penalty = true;
           land(block);
+          // in flight it passes through still-falling words (see reveal)
+          body.collisionFilter.category = CAT_FLYING;
+          body.collisionFilter.mask = MASK_FLYING;
           Body.setVelocity(body, { x: dir * FLY_SPEED * PX_PER_STEP, y: -3 });
           Body.setAngularVelocity(body, dir * 0.12);
         }
