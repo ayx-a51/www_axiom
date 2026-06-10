@@ -676,6 +676,76 @@
     return pair;
   }
 
+  // math: ~3rd grade at tier 0 up to harder mental math at tier 4. Each
+  // generator returns the expression and its real value; pickEquation picks
+  // a tier-appropriate one and decides 50/50 whether to show it with the
+  // correct answer or a plausibly wrong one.
+  const SUP = ["⁰","¹","²","³","⁴","⁵","⁶","⁷","⁸","⁹"];
+  function sup(n) { return String(n).split("").map(function (d) { return SUP[+d]; }).join(""); }
+  function rint(lo, hi) { return lo + ((Math.random() * (hi - lo + 1)) | 0); }
+
+  const TIER_EQ = [
+    function () { // tier 0 - 3rd grade
+      const r = Math.random();
+      if (r < 0.4) { const a = rint(1,19), b = rint(1,19); return { expr: a + "+" + b, value: a + b }; }
+      if (r < 0.7) { const a = rint(5,20), b = rint(1, a - 1); return { expr: a + "−" + b, value: a - b }; }
+      const a = rint(2,10), b = rint(2,10); return { expr: a + "×" + b, value: a * b };
+    },
+    function () { // tier 1
+      const r = Math.random();
+      if (r < 0.3) { const a = rint(10,50), b = rint(10,50); return { expr: a + "+" + b, value: a + b }; }
+      if (r < 0.5) { const a = rint(30,90), b = rint(10, a - 5); return { expr: a + "−" + b, value: a - b }; }
+      if (r < 0.8) { const a = rint(2,12), b = rint(2,12); return { expr: a + "×" + b, value: a * b }; }
+      const q = rint(2,11), b = rint(2,11); return { expr: (q * b) + "÷" + b, value: q };
+    },
+    function () { // tier 2
+      const r = Math.random();
+      if (r < 0.4) { const a = rint(11,30), b = rint(3,9); return { expr: a + "×" + b, value: a * b }; }
+      if (r < 0.6) { const q = rint(2,20), b = rint(3,12); return { expr: (q * b) + "÷" + b, value: q }; }
+      if (r < 0.8) { const a = rint(2,20), b = rint(2,10), c = rint(2,10);
+                     return { expr: a + "+" + b + "×" + c, value: a + b * c }; }
+      const a = rint(2,12); return { expr: a + "²", value: a * a };
+    },
+    function () { // tier 3
+      const r = Math.random();
+      if (r < 0.3) { const a = rint(11,35), b = rint(11,20); return { expr: a + "×" + b, value: a * b }; }
+      if (r < 0.5) { const a = rint(3,15); return { expr: a + "²", value: a * a }; }
+      if (r < 0.7) { const a = rint(2,20), b = rint(3,10), c = rint(2,10);
+                     return { expr: a + "+" + b + "×" + c, value: a + b * c }; }
+      const q = rint(3,20), b = rint(4,12); return { expr: (q * b) + "÷" + b, value: q };
+    },
+    function () { // tier 4
+      const r = Math.random();
+      if (r < 0.25) { const a = rint(11,40), b = rint(11,25); return { expr: a + "×" + b, value: a * b }; }
+      if (r < 0.4)  { const a = rint(2,9); return { expr: a + "³", value: a * a * a }; }
+      if (r < 0.55) { const n = rint(3,7); return { expr: "2" + sup(n), value: Math.pow(2, n) }; }
+      if (r < 0.75) { const a = rint(4,15); return { expr: "√" + (a * a), value: a }; }
+      const a = rint(2,10), b = rint(2,10);
+      return { expr: a + "²+" + b + "²", value: a * a + b * b };
+    }
+  ];
+
+  function pickEquation() {
+    const gen = TIER_EQ[Math.min(tier(), TIER_EQ.length - 1)];
+    let eq;
+    for (let tries = 0; tries < 15; tries++) {
+      eq = gen();
+      if (recentWords.indexOf(eq.expr) === -1) break;
+    }
+    recentWords.push(eq.expr);
+    if (recentWords.length > RECENT_LIMIT) recentWords.shift();
+
+    const correct = Math.random() < 0.5;
+    let shown = eq.value;
+    if (!correct) {
+      const deltas = [1, -1, 2, -2, 10, -10];
+      shown = eq.value + deltas[(Math.random() * deltas.length) | 0];
+      if (shown === eq.value) shown += 1;
+      if (shown < 0) shown = eq.value + 1;
+    }
+    return { text: eq.expr + "=" + shown, isWrong: !correct };
+  }
+
   function updateHUD() {
     scoreEl.textContent = score;
     levelEl.textContent = I18N[lang].level + " " + (tier() + 1);
@@ -717,9 +787,16 @@
   }
 
   function spawn() {
-    const pair = pickPair();
-    const misspelled = Math.random() < 0.5;
-    const word = misspelled ? pair.w : pair.r;
+    let word, misspelled;
+    if (Math.random() < 0.20) {
+      const eq = pickEquation();
+      word = eq.text;
+      misspelled = eq.isWrong; // "misspelled" = "should be swiped left"
+    } else {
+      const pair = pickPair();
+      misspelled = Math.random() < 0.5;
+      word = misspelled ? pair.w : pair.r;
+    }
 
     const el = document.createElement("div");
     el.className = "block";
