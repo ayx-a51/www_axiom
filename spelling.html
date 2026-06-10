@@ -685,48 +685,45 @@
   function rint(lo, hi) { return lo + ((Math.random() * (hi - lo + 1)) | 0); }
 
   const TIER_EQ = [
-    function () { // tier 0 - 3rd grade
+    function () { // tier 0 - easiest, single digit
       const r = Math.random();
-      if (r < 0.4) { const a = rint(1,19), b = rint(1,19); return { expr: a + "+" + b, value: a + b }; }
-      if (r < 0.7) { const a = rint(5,20), b = rint(1, a - 1); return { expr: a + "−" + b, value: a - b }; }
-      const a = rint(2,10), b = rint(2,10); return { expr: a + "×" + b, value: a * b };
+      if (r < 0.5) { const a = rint(1,9), b = rint(1,9); return { expr: a + "+" + b, value: a + b }; }
+      if (r < 0.85) { const a = rint(3,10), b = rint(1, a - 1); return { expr: a + "−" + b, value: a - b }; }
+      const a = rint(2,5), b = rint(2,5); return { expr: a + "×" + b, value: a * b };
     },
     function () { // tier 1
       const r = Math.random();
-      if (r < 0.3) { const a = rint(10,50), b = rint(10,50); return { expr: a + "+" + b, value: a + b }; }
-      if (r < 0.5) { const a = rint(30,90), b = rint(10, a - 5); return { expr: a + "−" + b, value: a - b }; }
-      if (r < 0.8) { const a = rint(2,12), b = rint(2,12); return { expr: a + "×" + b, value: a * b }; }
-      const q = rint(2,11), b = rint(2,11); return { expr: (q * b) + "÷" + b, value: q };
+      if (r < 0.4) { const a = rint(1,15), b = rint(1,15); return { expr: a + "+" + b, value: a + b }; }
+      if (r < 0.7) { const a = rint(5,20), b = rint(1, a - 1); return { expr: a + "−" + b, value: a - b }; }
+      const a = rint(2,7), b = rint(2,7); return { expr: a + "×" + b, value: a * b };
     },
     function () { // tier 2
       const r = Math.random();
-      if (r < 0.4) { const a = rint(11,30), b = rint(3,9); return { expr: a + "×" + b, value: a * b }; }
-      if (r < 0.6) { const q = rint(2,20), b = rint(3,12); return { expr: (q * b) + "÷" + b, value: q }; }
-      if (r < 0.8) { const a = rint(2,20), b = rint(2,10), c = rint(2,10);
-                     return { expr: a + "+" + b + "×" + c, value: a + b * c }; }
-      const a = rint(2,12); return { expr: a + "²", value: a * a };
+      if (r < 0.3) { const a = rint(10,30), b = rint(10,30); return { expr: a + "+" + b, value: a + b }; }
+      if (r < 0.55) { const a = rint(15,40), b = rint(5, a - 5); return { expr: a + "−" + b, value: a - b }; }
+      if (r < 0.85) { const a = rint(2,10), b = rint(2,10); return { expr: a + "×" + b, value: a * b }; }
+      const q = rint(2,9), b = rint(2,9); return { expr: (q * b) + "÷" + b, value: q };
     },
     function () { // tier 3
       const r = Math.random();
-      if (r < 0.3) { const a = rint(11,35), b = rint(11,20); return { expr: a + "×" + b, value: a * b }; }
-      if (r < 0.5) { const a = rint(3,15); return { expr: a + "²", value: a * a }; }
-      if (r < 0.7) { const a = rint(2,20), b = rint(3,10), c = rint(2,10);
-                     return { expr: a + "+" + b + "×" + c, value: a + b * c }; }
-      const q = rint(3,20), b = rint(4,12); return { expr: (q * b) + "÷" + b, value: q };
+      if (r < 0.4) { const a = rint(2,12), b = rint(2,12); return { expr: a + "×" + b, value: a * b }; }
+      if (r < 0.6) { const a = rint(11,20), b = rint(2,9); return { expr: a + "×" + b, value: a * b }; }
+      if (r < 0.8) { const a = rint(2,10); return { expr: a + "²", value: a * a }; }
+      const q = rint(2,12), b = rint(2,10); return { expr: (q * b) + "÷" + b, value: q };
     },
     function () { // tier 4
       const r = Math.random();
-      if (r < 0.25) { const a = rint(11,40), b = rint(11,25); return { expr: a + "×" + b, value: a * b }; }
-      if (r < 0.4)  { const a = rint(2,9); return { expr: a + "³", value: a * a * a }; }
-      if (r < 0.55) { const n = rint(3,7); return { expr: "2" + sup(n), value: Math.pow(2, n) }; }
-      if (r < 0.75) { const a = rint(4,15); return { expr: "√" + (a * a), value: a }; }
-      const a = rint(2,10), b = rint(2,10);
-      return { expr: a + "²+" + b + "²", value: a * a + b * b };
+      if (r < 0.3) { const a = rint(11,25), b = rint(11,15); return { expr: a + "×" + b, value: a * b }; }
+      if (r < 0.5) { const a = rint(3,12); return { expr: a + "²", value: a * a }; }
+      if (r < 0.65) { const a = rint(2,5); return { expr: a + "³", value: a * a * a }; }
+      if (r < 0.8) { const n = rint(3,5); return { expr: "2" + sup(n), value: Math.pow(2, n) }; }
+      const a = rint(3,12); return { expr: "√" + (a * a), value: a };
     }
   ];
 
   function pickEquation() {
-    const gen = TIER_EQ[Math.min(tier(), TIER_EQ.length - 1)];
+    const t = Math.min(tier(), TIER_EQ.length - 1);
+    const gen = TIER_EQ[t];
     let eq;
     for (let tries = 0; tries < 15; tries++) {
       eq = gen();
@@ -738,7 +735,9 @@
     const correct = Math.random() < 0.5;
     let shown = eq.value;
     if (!correct) {
-      const deltas = [1, -1, 2, -2, 10, -10];
+      // small offsets keep the mental check quick; harder tiers allow a
+      // bigger miss too, but never anything wild
+      const deltas = t < 3 ? [1, -1, 2, -2] : [1, -1, 2, -2, 5, -5];
       shown = eq.value + deltas[(Math.random() * deltas.length) | 0];
       if (shown === eq.value) shown += 1;
       if (shown < 0) shown = eq.value + 1;
