@@ -250,15 +250,15 @@
       { right: "height",   wrong: "hieght"   },
       { right: "writing",  wrong: "writting" },
       { right: "coming",   wrong: "comming"  },
-      { right: "losing",   wrong: "loosing"  },
+      { right: "tongue",   wrong: "tounge"   },
       { right: "across",   wrong: "accross"  },
       { right: "already",  wrong: "allready" },
       { right: "forty",    wrong: "fourty"   },
       { right: "ninety",   wrong: "ninty"    },
       { right: "finally",  wrong: "finaly"   },
-      { right: "lose",     wrong: "loose"    },
+      { right: "again",    wrong: "agian"    },
       { right: "really",   wrong: "realy"    },
-      { right: "fourth",   wrong: "forth"    }
+      { right: "people",   wrong: "peopel"   }
     ],
     // Tier 1 - medium-easy
     [
@@ -269,8 +269,8 @@
       { right: "happened",    wrong: "happend"     },
       { right: "address",     wrong: "adress"      },
       { right: "amateur",     wrong: "amatuer"     },
-      { right: "calendar",    wrong: "calender"    },
-      { right: "weather",     wrong: "wether"      },
+      { right: "calendar",    wrong: "calandar"    },
+      { right: "weather",     wrong: "wheather"    },
       { right: "library",     wrong: "libary"      },
       { right: "village",     wrong: "vilage"      },
       { right: "familiar",    wrong: "familar"     },
@@ -285,7 +285,7 @@
       { right: "league",      wrong: "leauge"      },
       { right: "preferred",   wrong: "prefered"    },
       { right: "pursue",      wrong: "persue"      },
-      { right: "success",     wrong: "sucess"      },
+      { right: "beautiful",   wrong: "beutiful"    },
       { right: "thought",     wrong: "thaught"     },
       { right: "twelfth",     wrong: "twelveth"    }
     ],
@@ -299,7 +299,7 @@
       { right: "government",  wrong: "goverment"   },
       { right: "business",    wrong: "buisness"    },
       { right: "grateful",    wrong: "greatful"    },
-      { right: "minuscule",   wrong: "miniscule"   },
+      { right: "different",   wrong: "diffrent"    },
       { right: "athlete",     wrong: "athelete"    },
       { right: "vacuum",      wrong: "vaccum"      },
       { right: "column",      wrong: "colum"       },
@@ -331,7 +331,7 @@
       { right: "cemetery",      wrong: "cemetary"       },
       { right: "privilege",     wrong: "priviledge"     },
       { right: "noticeable",    wrong: "noticable"      },
-      { right: "accidentally",  wrong: "accidently"     },
+      { right: "guidance",      wrong: "guidence"       },
       { right: "apparently",    wrong: "apparantly"     },
       { right: "disappear",     wrong: "dissapear"      },
       { right: "disappoint",    wrong: "dissapoint"     },
@@ -359,10 +359,10 @@
       { right: "occasionally",   wrong: "occassionally"  },
       { right: "liaison",        wrong: "liason"         },
       { right: "mischievous",    wrong: "mischievious"   },
-      { right: "supersede",      wrong: "supercede"      },
+      { right: "pharaoh",        wrong: "pharoah"        },
       { right: "consensus",      wrong: "concensus"      },
       { right: "camouflage",     wrong: "camoflage"      },
-      { right: "chauffeur",      wrong: "chauffer"       },
+      { right: "chauffeur",      wrong: "chaufeur"       },
       { right: "hierarchy",      wrong: "heirarchy"      },
       { right: "inoculate",      wrong: "innoculate"     },
       { right: "perseverance",   wrong: "perserverance"  },
@@ -371,7 +371,7 @@
       { right: "surveillance",   wrong: "surveilance"    },
       { right: "acquire",        wrong: "aquire"         },
       { right: "exhilarate",     wrong: "exilerate"      },
-      { right: "fluorescent",    wrong: "florescent"     },
+      { right: "fluorescent",    wrong: "flourescent"    },
       { right: "indispensable",  wrong: "indispensible"  },
       { right: "reminiscent",    wrong: "reminescent"    },
       { right: "conscientious",  wrong: "conscientous"   }
@@ -421,11 +421,20 @@
     return Math.max(0.95, 2.3 - tier() * 0.27);
   }
 
+  const RECENT_LIMIT = 10;
+  let recentWords = [];
+
   function pickPair() {
     const t = tier();
     const pool = [];
     for (let i = 0; i <= t; i++) pool.push.apply(pool, PAIRS_BY_TIER[i]);
-    return pool[(Math.random() * pool.length) | 0];
+    let pair = pool[(Math.random() * pool.length) | 0];
+    for (let tries = 0; tries < 15 && recentWords.indexOf(pair.right) !== -1; tries++) {
+      pair = pool[(Math.random() * pool.length) | 0];
+    }
+    recentWords.push(pair.right);
+    if (recentWords.length > RECENT_LIMIT) recentWords.shift();
+    return pair;
   }
 
   function applyTransform(b) {
@@ -769,6 +778,7 @@
     measureField();
     for (let i = 0; i < blocks.length; i++) blocks[i].el.remove();
     blocks = [];
+    recentWords = [];
     score = 0;
     spawnTimer = spawnInterval() - 0.6;
     lastTime = 0;
