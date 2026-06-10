@@ -75,12 +75,6 @@
     transition: background 0.12s, box-shadow 0.12s;
   }
   .block.dragging { cursor: grabbing; }
-  .block[data-dir="right"] {
-    background: linear-gradient(180deg, #4aa05f 0%, #357c47 100%);
-  }
-  .block[data-dir="left"] {
-    background: linear-gradient(180deg, #c14a4a 0%, #9b3333 100%);
-  }
   .block.settled {
     background: linear-gradient(180deg, #586676 0%, #3f4b59 100%);
     color: rgba(241, 243, 247, 0.65);
@@ -97,16 +91,8 @@
     right: 0;
     bottom: 0;
     height: 38px;
-    background:
-      repeating-linear-gradient(
-        45deg,
-        rgba(143, 214, 164, 0.08) 0,
-        rgba(143, 214, 164, 0.08) 8px,
-        rgba(11, 19, 32, 0.5) 8px,
-        rgba(11, 19, 32, 0.5) 16px
-      );
-    border-top: 2px solid rgba(143, 214, 164, 0.55);
-    box-shadow: 0 -2px 14px rgba(143, 214, 164, 0.12);
+    background: #2e3d50;
+    border-top: 3px solid #8fd6a4;
     pointer-events: none;
     z-index: 1;
   }
@@ -536,6 +522,7 @@
       height: height,
       state: "falling",   // falling -> landed | cleared -> gone
       penalty: false,
+      revealed: false,
       dragging: false,
       dragX: 0,
       startX: 0,
@@ -555,10 +542,21 @@
   }
 
   // first contact with anything hands the block over to the engine
+  // a wrongly swiped block shows its color only when it first hits something
+  function reveal(body) {
+    const blk = body.plugin && body.plugin.block;
+    if (blk && blk.penalty && !blk.revealed) {
+      blk.revealed = true;
+      blk.el.classList.add("fast");
+    }
+  }
+
   Events.on(engine, "collisionStart", function (ev) {
     for (let k = 0; k < ev.pairs.length; k++) {
       const pair = ev.pairs[k];
       if (pair.bodyA.isSensor || pair.bodyB.isSensor) continue;
+      reveal(pair.bodyA);
+      reveal(pair.bodyB);
       if (pair.bodyA.plugin.isSideWall || pair.bodyB.plugin.isSideWall) continue;
       const a = pair.bodyA.plugin && pair.bodyA.plugin.block;
       const b = pair.bodyB.plugin && pair.bodyB.plugin.block;
@@ -584,17 +582,12 @@
     el.addEventListener("pointermove", function (e) {
       if (!block.dragging) return;
       block.dragX = e.clientX - block.startX;
-      const d = block.dragX;
-      if      (d >  20) el.dataset.dir = "right";
-      else if (d < -20) el.dataset.dir = "left";
-      else              delete el.dataset.dir;
     });
 
     function finish() {
       if (!block.dragging) return;
       block.dragging = false;
       el.classList.remove("dragging");
-      delete el.dataset.dir;
 
       if (block.state !== "falling") { block.dragX = 0; return; }
 
@@ -613,10 +606,10 @@
           updateHUD();
           popScore(block);
         } else {
-          // wrong call: full physics from here on - wall ricochet, bounces, spin
+          // wrong call: full physics from here on - wall ricochet, bounces,
+          // spin. The red reveal waits until the first impact.
           block.penalty = true;
           land(block);
-          el.classList.add("fast");
           Body.setVelocity(body, { x: dir * FLY_SPEED * PX_PER_STEP, y: -3 });
           Body.setAngularVelocity(body, dir * 0.12);
         }
