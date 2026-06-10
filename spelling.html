@@ -25,6 +25,7 @@
     position: relative;
     width: 100vw;
     height: 100vh;
+    height: 100dvh; /* track the real visible viewport on mobile */
     overflow: hidden;
   }
   #field {
@@ -379,6 +380,7 @@
     ]
   ];
 
+  const gameEl       = document.getElementById("game");
   const field        = document.getElementById("field");
   const scoreEl      = document.getElementById("score");
   const levelEl      = document.getElementById("level");
@@ -409,8 +411,11 @@
   let walls = [];
 
   function measureField() {
-    fieldWidth  = window.innerWidth;
-    fieldHeight = window.innerHeight;
+    // measure the game element, not the window: 100dvh and window.innerHeight
+    // can disagree on mobile, which made the physics floor float above the
+    // visual one
+    fieldWidth  = gameEl.clientWidth;
+    fieldHeight = gameEl.clientHeight;
     floorY      = fieldHeight - 38;
     ceilingY    = 56;
   }
@@ -418,14 +423,16 @@
   function buildWalls() {
     if (walls.length) Composite.remove(engine.world, walls);
     const T = 400; // wall thickness, kept fat so fast bodies can't tunnel
+    const sideWall = { isStatic: true, friction: 0.1, restitution: 0.4 };
     walls = [
       Bodies.rectangle(fieldWidth / 2, floorY + T / 2, fieldWidth + 2 * T, T,
         { isStatic: true, friction: 0.6, restitution: 0.2 }),
-      Bodies.rectangle(-T / 2, 0, T, fieldHeight * 6,
-        { isStatic: true, friction: 0.1, restitution: 0.4 }),
-      Bodies.rectangle(fieldWidth + T / 2, 0, T, fieldHeight * 6,
-        { isStatic: true, friction: 0.1, restitution: 0.4 })
+      Bodies.rectangle(-T / 2, 0, T, fieldHeight * 6, sideWall),
+      Bodies.rectangle(fieldWidth + T / 2, 0, T, fieldHeight * 6, sideWall)
     ];
+    // brushing a side wall must not count as "landing"
+    walls[1].plugin.isSideWall = true;
+    walls[2].plugin.isSideWall = true;
     Composite.add(engine.world, walls);
   }
 
@@ -483,8 +490,9 @@
 
   // pick a spawn x that doesn't overlap blocks still near the top
   function spawnX(w) {
+    const m = 8; // keep a small gap to the walls
     for (let tries = 0; tries < 8; tries++) {
-      const x = w / 2 + Math.random() * Math.max(1, fieldWidth - w);
+      const x = m + w / 2 + Math.random() * Math.max(1, fieldWidth - w - 2 * m);
       let ok = true;
       for (let i = 0; i < blocks.length; i++) {
         const b = blocks[i];
@@ -551,6 +559,7 @@
     for (let k = 0; k < ev.pairs.length; k++) {
       const pair = ev.pairs[k];
       if (pair.bodyA.isSensor || pair.bodyB.isSensor) continue;
+      if (pair.bodyA.plugin.isSideWall || pair.bodyB.plugin.isSideWall) continue;
       const a = pair.bodyA.plugin && pair.bodyA.plugin.block;
       const b = pair.bodyB.plugin && pair.bodyB.plugin.block;
       if (a && a.state === "falling") land(a);
