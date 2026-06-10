@@ -225,6 +225,7 @@
     </div>
   </div>
 </div>
+<script src="matter.min.js"></script>
 <script>
 (function () {
   "use strict";
@@ -386,6 +387,8 @@
   const overlayMsg   = document.getElementById("overlayMsg");
   const startBtn     = document.getElementById("startBtn");
 
+  const { Engine, Bodies, Body, Composite, Events } = Matter;
+
   let fieldWidth, fieldHeight, floorY, ceilingY;
   let blocks = [];
   let score = 0;
@@ -393,20 +396,37 @@
   let running = false;
   let lastTime = 0;
   let spawnTimer = 0;
+  let stepAcc = 0;
 
   const SWIPE_THRESHOLD = 60;
-  const FLY_SPEED       = 1400;
-  const BASE_FALL_VY    = 55;
-  const GRAVITY         = 1400;
-  const WALL_DAMP       = 0.35;
-  const FLOOR_BOUNCE    = 0.32;
-  const WALL_RESTITUTION = 0.38;
+  const FLY_SPEED       = 1400;          // px/s for swiped blocks
+  const BASE_FALL_VY    = 55;            // px/s constant fall
+  const STEP_MS         = 1000 / 60;
+  const PX_PER_STEP     = STEP_MS / 1000; // converts px/s -> px per physics step
+  const GAMEOVER_HOLD   = 0.5;           // s the stack must rest above the line
+
+  const engine = Engine.create({ enableSleeping: true });
+  let walls = [];
 
   function measureField() {
     fieldWidth  = window.innerWidth;
     fieldHeight = window.innerHeight;
     floorY      = fieldHeight - 38;
     ceilingY    = 56;
+  }
+
+  function buildWalls() {
+    if (walls.length) Composite.remove(engine.world, walls);
+    const T = 400; // wall thickness, kept fat so fast bodies can't tunnel
+    walls = [
+      Bodies.rectangle(fieldWidth / 2, floorY + T / 2, fieldWidth + 2 * T, T,
+        { isStatic: true, friction: 0.6, restitution: 0.2 }),
+      Bodies.rectangle(-T / 2, 0, T, fieldHeight * 6,
+        { isStatic: true, friction: 0.1, restitution: 0.4 }),
+      Bodies.rectangle(fieldWidth + T / 2, 0, T, fieldHeight * 6,
+        { isStatic: true, friction: 0.1, restitution: 0.4 })
+    ];
+    Composite.add(engine.world, walls);
   }
 
   function tier() {
@@ -437,13 +457,6 @@
     return pair;
   }
 
-  function applyTransform(b) {
-    let rot = b.angle || 0;
-    if (b.dragging) rot += b.dragX / 28;
-    b.el.style.transform =
-      "translate(" + (b.x + b.dragX) + "px," + b.y + "px) rotate(" + rot + "deg)";
-  }
-
   function updateHUD() {
     scoreEl.textContent = score;
     levelEl.textContent = "Level " + (tier() + 1);
@@ -453,10 +466,34 @@
     const pop = document.createElement("div");
     pop.className = "score-pop";
     pop.textContent = "+1";
-    pop.style.left = (b.x + b.width / 2 - 10) + "px";
-    pop.style.top  = (b.y) + "px";
+    pop.style.left = (b.body.position.x - 10) + "px";
+    pop.style.top  = (b.body.position.y - b.height / 2) + "px";
     field.appendChild(pop);
     setTimeout(function () { pop.remove(); }, 750);
+  }
+
+  function syncDOM(b) {
+    const p = b.body.position;
+    let deg = b.body.angle * 180 / Math.PI;
+    if (b.dragging) deg += b.dragX / 28;
+    b.el.style.transform =
+      "translate(" + (p.x - b.width / 2) + "px," + (p.y - b.height / 2) + "px) " +
+      "rotate(" + deg + "deg)";
+  }
+
+  // pick a spawn x that doesn't overlap blocks still near the top
+  function spawnX(w) {
+    for (let tries = 0; tries < 8; tries++) {
+      const x = w / 2 + Math.random() * Math.max(1, fieldWidth - w);
+      let ok = true;
+      for (let i = 0; i < blocks.length; i++) {
+        const b = blocks[i];
+        if (b.state !== "falling" || b.body.position.y > 150) continue;
+        if (Math.abs(b.body.position.x - x) < (b.width + w) / 2 + 10) { ok = false; break; }
+      }
+      if (ok) return x;
+    }
+    return w / 2 + Math.random() * Math.max(1, fieldWidth - w);
   }
 
   function spawn() {
@@ -471,30 +508,55 @@
 
     const width  = el.offsetWidth;
     const height = el.offsetHeight;
-    const maxX   = Math.max(0, fieldWidth - width);
-    const x      = Math.random() * maxX;
+    const x = spawnX(width);
+
+    const body = Bodies.rectangle(x, -height / 2 - 6, width, height, {
+      friction: 0.45,
+      frictionStatic: 0.7,
+      restitution: 0.25,
+      frictionAir: 0.01,
+      chamfer: { radius: 3 },
+      sleepThreshold: 45
+    });
 
     const block = {
       el: el,
+      body: body,
       word: word,
       misspelled: misspelled,
-      x: x,
-      y: -height - 4,
-      vx: 0,
-      vy: fallSpeed(),
       width: width,
       height: height,
-      angle: 0,
-      omega: 0,
-      state: "falling",
-      dragX: 0,
+      state: "falling",   // falling -> landed | cleared -> gone
+      penalty: false,
       dragging: false,
-      startX: 0
+      dragX: 0,
+      startX: 0,
+      bodyStartX: 0,
+      overTime: 0
     };
+    body.plugin.block = block;
+    Composite.add(engine.world, body);
     blocks.push(block);
     attachSwipe(block);
-    applyTransform(block);
+    syncDOM(block);
   }
+
+  function land(block) {
+    block.state = "landed";
+    if (!block.penalty) block.el.classList.add("settled");
+  }
+
+  // first contact with anything hands the block over to the engine
+  Events.on(engine, "collisionStart", function (ev) {
+    for (let k = 0; k < ev.pairs.length; k++) {
+      const pair = ev.pairs[k];
+      if (pair.bodyA.isSensor || pair.bodyB.isSensor) continue;
+      const a = pair.bodyA.plugin && pair.bodyA.plugin.block;
+      const b = pair.bodyB.plugin && pair.bodyB.plugin.block;
+      if (a && a.state === "falling") land(a);
+      if (b && b.state === "falling") land(b);
+    }
+  });
 
   function attachSwipe(block) {
     const el = block.el;
@@ -503,6 +565,7 @@
       if (block.state !== "falling") return;
       block.dragging = true;
       block.startX = e.clientX;
+      block.bodyStartX = block.body.position.x;
       block.dragX = 0;
       try { el.setPointerCapture(e.pointerId); } catch (_) {}
       el.classList.add("dragging");
@@ -512,7 +575,6 @@
     el.addEventListener("pointermove", function (e) {
       if (!block.dragging) return;
       block.dragX = e.clientX - block.startX;
-      applyTransform(block);
       const d = block.dragX;
       if      (d >  20) el.dataset.dir = "right";
       else if (d < -20) el.dataset.dir = "left";
@@ -525,250 +587,124 @@
       el.classList.remove("dragging");
       delete el.dataset.dir;
 
-      if (block.state !== "falling") {
-        block.dragX = 0;
-        applyTransform(block);
-        return;
-      }
+      if (block.state !== "falling") { block.dragX = 0; return; }
 
       if (Math.abs(block.dragX) > SWIPE_THRESHOLD) {
         const userSaysCorrect = block.dragX > 0;
-        const actuallyCorrect = !block.misspelled;
-        const userRight = userSaysCorrect === actuallyCorrect;
+        const userRight = userSaysCorrect === !block.misspelled;
         const dir = block.dragX > 0 ? 1 : -1;
-
-        block.x += block.dragX;
-        block.dragX = 0;
-        block.vx = dir * FLY_SPEED;
+        const body = block.body;
 
         if (userRight) {
-          block.state = "flying-correct";
+          block.state = "cleared";
+          body.isSensor = true; // glide out without disturbing the stack
+          Body.setVelocity(body, { x: dir * FLY_SPEED * PX_PER_STEP, y: -2 });
+          Body.setAngularVelocity(body, dir * 0.04);
           score++;
           updateHUD();
           popScore(block);
         } else {
-          block.state = "flying-wrong";
+          // wrong call: full physics from here on - wall ricochet, bounces, spin
+          block.penalty = true;
+          land(block);
           el.classList.add("fast");
+          Body.setVelocity(body, { x: dir * FLY_SPEED * PX_PER_STEP, y: -3 });
+          Body.setAngularVelocity(body, dir * 0.12);
         }
-      } else {
-        block.dragX = 0;
       }
-      applyTransform(block);
+      block.dragX = 0;
     }
 
     el.addEventListener("pointerup", finish);
     el.addEventListener("pointercancel", finish);
   }
 
-  // Returns { stopY, support } - highest top the block would rest on, and the
-  // settled block (or null for floor) directly under its center of mass.
-  function settleInfo(block) {
-    let stopY = floorY - block.height;
-    let support = null;
-    let supportLeft = 0;
-    let supportRight = fieldWidth;
-    let onFloor = true;
-
+  // enforce constant-speed falling (and drag position) before each physics step
+  function preStep() {
+    // gravity is integrated on top of the velocity we set; subtract its
+    // per-step contribution so the net fall speed is exactly fallSpeed()
+    const drift = engine.gravity.y * engine.gravity.scale * STEP_MS * STEP_MS;
+    const vy = Math.max(0.1, fallSpeed() * PX_PER_STEP - drift);
     for (let i = 0; i < blocks.length; i++) {
       const b = blocks[i];
-      if (b === block || b.state !== "settled") continue;
-      if (block.x + block.width <= b.x) continue;
-      if (block.x >= b.x + b.width) continue;
-      const top = b.y - block.height;
-      if (top < stopY) {
-        stopY = top;
-        support = b;
-        supportLeft = b.x;
-        supportRight = b.x + b.width;
-        onFloor = false;
-      } else if (top === stopY && !onFloor) {
-        // adjacent support of same height — extend the support span
-        supportLeft = Math.min(supportLeft, b.x);
-        supportRight = Math.max(supportRight, b.x + b.width);
+      if (b.state !== "falling") continue;
+      if (b.dragging) {
+        const half = b.width / 2;
+        const tx = Math.max(half, Math.min(fieldWidth - half, b.bodyStartX + b.dragX));
+        Body.setPosition(b.body, { x: tx, y: b.body.position.y });
       }
+      Body.setVelocity(b.body, { x: 0, y: vy });
+      Body.setAngularVelocity(b.body, 0);
     }
-
-    return {
-      stopY: stopY,
-      onFloor: onFloor,
-      supportLeft: supportLeft,
-      supportRight: supportRight
-    };
   }
 
-  // True if center of mass is over the support span.
-  function isStable(b, info) {
-    if (info.onFloor) return true;
-    const com = b.x + b.width / 2;
-    return com > info.supportLeft + 2 && com < info.supportRight - 2;
-  }
-
-  // Direction (-1 left, +1 right) the block will tip if unstable.
-  function tipDirection(b, info) {
-    const com = b.x + b.width / 2;
-    const supCenter = (info.supportLeft + info.supportRight) / 2;
-    return com < supCenter ? -1 : 1;
-  }
-
-  function startTumble(b, info) {
-    const dir = tipDirection(b, info);
-    b.state = "tumbling";
-    // overhang fraction drives how strong the tip is
-    const overhang = dir < 0
-      ? (info.supportLeft - b.x) / b.width
-      : (b.x + b.width - info.supportRight) / b.width;
-    const k = Math.max(0.2, Math.min(0.9, overhang));
-    b.vx = dir * (80 + k * 220);
-    b.vy = Math.max(b.vy * 0.4, 40);
-    b.omega = dir * (110 + k * 220); // deg / sec
-  }
-
-  function step(dt) {
-    const next = [];
+  function postFrame(dt) {
+    let ended = false;
     for (let i = 0; i < blocks.length; i++) {
       const b = blocks[i];
+      const body = b.body;
 
-      switch (b.state) {
-
-        case "falling": {
-          b.y += b.vy * dt;
-          const info = settleInfo(b);
-          if (b.y >= info.stopY) {
-            b.y = info.stopY;
-            if (isStable(b, info)) {
-              b.state = "settled";
-              b.angle = 0;
-              b.vx = 0; b.vy = 0; b.omega = 0;
-              b.el.classList.add("settled");
-              if (b.y < ceilingY) {
-                applyTransform(b);
-                next.push(b);
-                for (let j = i + 1; j < blocks.length; j++) next.push(blocks[j]);
-                blocks = next;
-                gameOver();
-                return;
-              }
-            } else {
-              startTumble(b, info);
-            }
-          }
-          break;
+      if (b.state === "cleared") {
+        if (body.position.x < -b.width || body.position.x > fieldWidth + b.width) {
+          Composite.remove(engine.world, body);
+          b.el.remove();
+          b.state = "gone";
+          continue;
         }
-
-        case "tumbling": {
-          b.vy += GRAVITY * dt;
-          b.x += b.vx * dt;
-          b.y += b.vy * dt;
-          b.angle += b.omega * dt;
-
-          // wall bounce
-          if (b.x < 0) { b.x = 0; b.vx = -b.vx * WALL_DAMP; b.omega *= -WALL_DAMP; }
-          else if (b.x + b.width > fieldWidth) {
-            b.x = fieldWidth - b.width;
-            b.vx = -b.vx * WALL_DAMP;
-            b.omega *= -WALL_DAMP;
-          }
-
-          const info = settleInfo(b);
-          if (b.y >= info.stopY) {
-            b.y = info.stopY;
-            if (isStable(b, info) && Math.abs(b.vy) < 120 && Math.abs(b.vx) < 60) {
-              b.state = "settled";
-              // keep the landing angle (normalized); the settled case eases it flat
-              b.angle = ((b.angle % 360) + 540) % 360 - 180;
-              b.vx = 0; b.vy = 0; b.omega = 0;
-              b.el.classList.add("settled");
-              if (b.y < ceilingY) {
-                applyTransform(b);
-                next.push(b);
-                for (let j = i + 1; j < blocks.length; j++) next.push(blocks[j]);
-                blocks = next;
-                gameOver();
-                return;
-              }
-            } else {
-              // bounce on contact, lose vertical energy, keep tumbling
-              b.vy = -b.vy * FLOOR_BOUNCE;
-              b.vx *= 0.7;
-              b.omega *= 0.7;
-              if (!isStable(b, info)) {
-                const dir = tipDirection(b, info);
-                if ((dir > 0 && b.vx < 60) || (dir < 0 && b.vx > -60)) {
-                  b.vx += dir * 90;
-                  b.omega += dir * 60;
-                }
-              }
-            }
-          }
-          break;
-        }
-
-        case "settled": {
-          if (b.angle !== 0) {
-            b.angle *= Math.max(0, 1 - 12 * dt);
-            if (Math.abs(b.angle) < 0.4) b.angle = 0;
-          }
-          break;
-        }
-
-        case "flying-correct": {
-          b.x += b.vx * dt;
-          b.y += b.vy * dt;
-          if (b.x + b.width < -20 || b.x > fieldWidth + 20) {
-            b.state = "gone";
-            b.el.remove();
-            continue;
-          }
-          break;
-        }
-
-        case "flying-wrong": {
-          b.x += b.vx * dt;
-          b.y += b.vy * dt;
-          if (b.x < 0 || b.x + b.width > fieldWidth) {
-            const dir = b.vx > 0 ? 1 : -1;
-            b.x = Math.max(0, Math.min(fieldWidth - b.width, b.x));
-            // ricochet: reflect off the wall, pop up a little, start spinning
-            b.vx = -dir * FLY_SPEED * WALL_RESTITUTION;
-            b.vy = -260;
-            b.omega = -dir * (240 + Math.random() * 160);
-            b.state = "tumbling";
-            b.el.classList.add("fast");
-          }
-          break;
+      } else if (b.state === "landed") {
+        // stack reached the top: block resting (not just passing) above the line
+        if (body.bounds.min.y < ceilingY && (body.isSleeping || body.speed < 0.2)) {
+          b.overTime += dt;
+          if (b.overTime > GAMEOVER_HOLD) ended = true;
+        } else {
+          b.overTime = 0;
         }
       }
-
-      applyTransform(b);
-      next.push(b);
+      syncDOM(b);
     }
-    blocks = next;
+    blocks = blocks.filter(function (b) { return b.state !== "gone"; });
+    if (ended) gameOver();
   }
 
   function tick(t) {
     if (!running) return;
     if (!lastTime) lastTime = t;
-    const dt = Math.min(0.05, (t - lastTime) / 1000);
+    const dtMs = Math.min(50, t - lastTime);
     lastTime = t;
 
-    spawnTimer += dt;
+    spawnTimer += dtMs / 1000;
     if (spawnTimer >= spawnInterval()) {
       spawnTimer = 0;
       spawn();
     }
 
-    step(dt);
+    stepAcc += dtMs;
+    let steps = 0;
+    while (stepAcc >= STEP_MS && steps < 4) {
+      preStep();
+      Engine.update(engine, STEP_MS);
+      stepAcc -= STEP_MS;
+      steps++;
+    }
+    if (steps === 4) stepAcc = 0; // dropped frames: don't spiral
+
+    postFrame(dtMs / 1000);
     if (running) requestAnimationFrame(tick);
   }
 
   function start() {
     measureField();
-    for (let i = 0; i < blocks.length; i++) blocks[i].el.remove();
+    buildWalls();
+    for (let i = 0; i < blocks.length; i++) {
+      Composite.remove(engine.world, blocks[i].body);
+      blocks[i].el.remove();
+    }
     blocks = [];
     recentWords = [];
     score = 0;
     spawnTimer = spawnInterval() - 0.6;
     lastTime = 0;
+    stepAcc = 0;
     updateHUD();
     overlay.classList.add("hidden");
     running = true;
@@ -794,6 +730,7 @@
 
   window.addEventListener("resize", function () {
     measureField();
+    buildWalls();
   });
 
   measureField();
