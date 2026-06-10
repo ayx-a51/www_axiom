@@ -75,15 +75,16 @@
     transition: background 0.12s, box-shadow 0.12s;
   }
   .block.dragging { cursor: grabbing; }
-  .block.settled {
-    background: linear-gradient(180deg, #586676 0%, #3f4b59 100%);
-    color: rgba(241, 243, 247, 0.65);
+  .block.locked {
+    color: rgba(241, 243, 247, 0.85);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
     cursor: default;
   }
-  .block.fast {
-    background: linear-gradient(180deg, #c14a4a 0%, #7a2828 100%);
-    box-shadow: 0 6px 20px rgba(193, 74, 74, 0.5);
+  .block.ok {
+    background: linear-gradient(180deg, #3f8a54 0%, #2f6b41 100%);
+  }
+  .block.mis {
+    background: linear-gradient(180deg, #b04848 0%, #8a3232 100%);
   }
   #floor {
     position: absolute;
@@ -386,7 +387,7 @@
   let spawnTimer = 0;
   let stepAcc = 0;
 
-  const SWIPE_THRESHOLD = 60;
+  const SWIPE_THRESHOLD = 30;
   const FLY_SPEED       = 1400;          // px/s for swiped blocks
   const BASE_FALL_VY    = 55;            // px/s constant fall
   const STEP_MS         = 1000 / 60;
@@ -547,11 +548,17 @@
     syncDOM(block);
   }
 
+  // stacked blocks show the truth: green = was spelled correctly, red = not
+  function showTruth(block) {
+    block.el.classList.add("locked", block.misspelled ? "mis" : "ok");
+  }
+
   function land(block) {
     block.state = "landed";
     block.body.collisionFilter.category = CAT_SETTLED;
     block.body.collisionFilter.mask = MASK_ALL;
-    if (!block.penalty) block.el.classList.add("settled");
+    // penalty blocks stay neutral while flying; reveal() colors them on impact
+    if (!block.penalty) showTruth(block);
   }
 
   // a wrongly swiped block shows its color and rejoins normal collisions
@@ -560,7 +567,7 @@
     const blk = body.plugin && body.plugin.block;
     if (blk && blk.penalty && !blk.revealed) {
       blk.revealed = true;
-      blk.el.classList.add("fast");
+      showTruth(blk);
       body.collisionFilter.category = CAT_SETTLED;
       body.collisionFilter.mask = MASK_ALL;
     }
