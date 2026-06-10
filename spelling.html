@@ -772,17 +772,20 @@
   // pick a spawn x that doesn't overlap blocks still near the top
   function spawnX(w) {
     const m = 8; // keep a small gap to the walls
-    for (let tries = 0; tries < 8; tries++) {
+    const minEdgeGap = 36; // horizontal breathing room between any two falling blocks
+    for (let tries = 0; tries < 25; tries++) {
       const x = m + w / 2 + Math.random() * Math.max(1, fieldWidth - w - 2 * m);
       let ok = true;
       for (let i = 0; i < blocks.length; i++) {
         const b = blocks[i];
-        if (b.state !== "falling" || b.body.position.y > 150) continue;
-        if (Math.abs(b.body.position.x - x) < (b.width + w) / 2 + 10) { ok = false; break; }
+        // every block currently in the air counts, no matter how far it has
+        // already fallen, so new words never come down in the same column
+        if (b.state !== "falling") continue;
+        if (Math.abs(b.body.position.x - x) < (b.width + w) / 2 + minEdgeGap) { ok = false; break; }
       }
       if (ok) return x;
     }
-    return w / 2 + Math.random() * Math.max(1, fieldWidth - w);
+    return null; // no clean column - tell the caller to wait
   }
 
   function spawn() {
@@ -805,6 +808,11 @@
     const width  = el.offsetWidth;
     const height = el.offsetHeight;
     const x = spawnX(width);
+    if (x === null) {
+      // no horizontal gap available right now - try again next tick
+      el.remove();
+      return false;
+    }
 
     const body = Bodies.rectangle(x, -height / 2 - 6, width, height, {
       friction: 0.45,
@@ -837,6 +845,7 @@
     blocks.push(block);
     attachSwipe(block);
     syncDOM(block);
+    return true;
   }
 
   // stacked blocks show the truth: green = was spelled correctly, red = not
@@ -1018,8 +1027,9 @@
 
     spawnTimer += dtMs / 1000;
     if (spawnTimer >= spawnInterval()) {
-      spawnTimer = 0;
-      spawn();
+      // only reset the timer when we actually placed a block - if no clean
+      // column was available, retry next frame so spawns are never doubled up
+      if (spawn()) spawnTimer = 0;
     }
 
     stepAcc += dtMs;
