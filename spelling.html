@@ -63,7 +63,7 @@
     padding: 12px 18px;
     background: linear-gradient(180deg, #4a6585 0%, #38506b 100%);
     color: #f1f3f7;
-    border-radius: 12px;
+    border-radius: 3px;
     font-size: clamp(16px, 4.6vw, 22px);
     font-weight: 500;
     white-space: nowrap;
@@ -90,6 +90,25 @@
     background: linear-gradient(180deg, #c14a4a 0%, #7a2828 100%);
     box-shadow: 0 6px 20px rgba(193, 74, 74, 0.5);
   }
+  #floor {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 38px;
+    background:
+      repeating-linear-gradient(
+        45deg,
+        rgba(143, 214, 164, 0.08) 0,
+        rgba(143, 214, 164, 0.08) 8px,
+        rgba(11, 19, 32, 0.5) 8px,
+        rgba(11, 19, 32, 0.5) 16px
+      );
+    border-top: 2px solid rgba(143, 214, 164, 0.55);
+    box-shadow: 0 -2px 14px rgba(143, 214, 164, 0.12);
+    pointer-events: none;
+    z-index: 1;
+  }
   #instructions {
     position: absolute;
     bottom: calc(env(safe-area-inset-bottom, 0) + 10px);
@@ -97,9 +116,10 @@
     right: 0;
     text-align: center;
     font-size: 12px;
-    color: rgba(230, 233, 239, 0.4);
+    color: rgba(230, 233, 239, 0.55);
     letter-spacing: 0.5px;
     pointer-events: none;
+    z-index: 2;
   }
   #overlay {
     position: absolute;
@@ -190,6 +210,7 @@
     <span id="level">Level 1</span>
   </div>
   <div id="field"></div>
+  <div id="floor"></div>
   <div id="instructions">
     <span class="arrow left">&larr; misspelled</span>
     <span class="arrow right">correctly spelled &rarr;</span>
@@ -209,80 +230,151 @@
   "use strict";
 
   const PAIRS_BY_TIER = [
-    // Tier 0 - very common short words
+    // Tier 0 - short, very common
     [
-      { right: "friend",  wrong: "freind"  },
-      { right: "their",   wrong: "thier"   },
-      { right: "weird",   wrong: "wierd"   },
-      { right: "piece",   wrong: "peice"   },
-      { right: "field",   wrong: "feild"   },
-      { right: "truly",   wrong: "truely"  },
-      { right: "thief",   wrong: "theif"   },
-      { right: "eighth",  wrong: "eigth"   },
-      { right: "until",   wrong: "untill"  },
-      { right: "lying",   wrong: "lieing"  },
-      { right: "fierce",  wrong: "feirce"  },
-      { right: "niece",   wrong: "neice"   }
-    ],
-    // Tier 1
-    [
-      { right: "believe",  wrong: "beleive"  },
-      { right: "receive",  wrong: "recieve"  },
-      { right: "because",  wrong: "becuase"  },
+      { right: "friend",   wrong: "freind"   },
+      { right: "their",    wrong: "thier"    },
+      { right: "weird",    wrong: "wierd"    },
+      { right: "piece",    wrong: "peice"    },
+      { right: "field",    wrong: "feild"    },
+      { right: "truly",    wrong: "truely"   },
+      { right: "thief",    wrong: "theif"    },
+      { right: "eighth",   wrong: "eigth"    },
+      { right: "until",    wrong: "untill"   },
+      { right: "lying",    wrong: "lieing"   },
+      { right: "fierce",   wrong: "feirce"   },
+      { right: "niece",    wrong: "neice"    },
+      { right: "chief",    wrong: "cheif"    },
+      { right: "yield",    wrong: "yeild"    },
+      { right: "ceiling",  wrong: "cieling"  },
+      { right: "height",   wrong: "hieght"   },
+      { right: "writing",  wrong: "writting" },
+      { right: "coming",   wrong: "comming"  },
+      { right: "losing",   wrong: "loosing"  },
+      { right: "across",   wrong: "accross"  },
+      { right: "already",  wrong: "allready" },
+      { right: "forty",    wrong: "fourty"   },
+      { right: "ninety",   wrong: "ninty"    },
       { right: "finally",  wrong: "finaly"   },
-      { right: "tomorrow", wrong: "tommorow" },
-      { right: "happened", wrong: "happend"  },
-      { right: "address",  wrong: "adress"   },
-      { right: "amateur",  wrong: "amatuer"  },
-      { right: "calendar", wrong: "calender" },
-      { right: "weather",  wrong: "wether"   },
-      { right: "library",  wrong: "libary"   },
-      { right: "village",  wrong: "vilage"   }
+      { right: "lose",     wrong: "loose"    },
+      { right: "really",   wrong: "realy"    },
+      { right: "fourth",   wrong: "forth"    }
+    ],
+    // Tier 1 - medium-easy
+    [
+      { right: "believe",     wrong: "beleive"     },
+      { right: "receive",     wrong: "recieve"     },
+      { right: "because",     wrong: "becuase"     },
+      { right: "tomorrow",    wrong: "tommorow"    },
+      { right: "happened",    wrong: "happend"     },
+      { right: "address",     wrong: "adress"      },
+      { right: "amateur",     wrong: "amatuer"     },
+      { right: "calendar",    wrong: "calender"    },
+      { right: "weather",     wrong: "wether"      },
+      { right: "library",     wrong: "libary"      },
+      { right: "village",     wrong: "vilage"      },
+      { right: "familiar",    wrong: "familar"     },
+      { right: "license",     wrong: "lisence"     },
+      { right: "surprise",    wrong: "suprise"     },
+      { right: "successful",  wrong: "sucessful"   },
+      { right: "experience",  wrong: "experiance"  },
+      { right: "existence",   wrong: "existance"   },
+      { right: "foreign",     wrong: "foriegn"     },
+      { right: "relief",      wrong: "releif"      },
+      { right: "science",     wrong: "sceince"     },
+      { right: "league",      wrong: "leauge"      },
+      { right: "preferred",   wrong: "prefered"    },
+      { right: "pursue",      wrong: "persue"      },
+      { right: "success",     wrong: "sucess"      },
+      { right: "thought",     wrong: "thaught"     },
+      { right: "twelfth",     wrong: "twelveth"    }
     ],
     // Tier 2
     [
-      { right: "separate",   wrong: "seperate"    },
-      { right: "definitely", wrong: "definately"  },
-      { right: "beginning",  wrong: "begining"    },
-      { right: "argument",   wrong: "arguement"   },
-      { right: "February",   wrong: "Febuary"     },
-      { right: "government", wrong: "goverment"   },
-      { right: "business",   wrong: "buisness"    },
-      { right: "foreign",    wrong: "foriegn"     },
-      { right: "grateful",   wrong: "greatful"    },
-      { right: "minuscule",  wrong: "miniscule"   },
-      { right: "athlete",    wrong: "athelete"    },
-      { right: "vacuum",     wrong: "vaccum"      }
+      { right: "separate",    wrong: "seperate"    },
+      { right: "definitely",  wrong: "definately"  },
+      { right: "beginning",   wrong: "begining"    },
+      { right: "argument",    wrong: "arguement"   },
+      { right: "February",    wrong: "Febuary"     },
+      { right: "government",  wrong: "goverment"   },
+      { right: "business",    wrong: "buisness"    },
+      { right: "grateful",    wrong: "greatful"    },
+      { right: "minuscule",   wrong: "miniscule"   },
+      { right: "athlete",     wrong: "athelete"    },
+      { right: "vacuum",      wrong: "vaccum"      },
+      { right: "column",      wrong: "colum"       },
+      { right: "harass",      wrong: "harrass"     },
+      { right: "humorous",    wrong: "humerous"    },
+      { right: "independent", wrong: "independant" },
+      { right: "knowledge",   wrong: "knowlege"    },
+      { right: "length",      wrong: "lenght"      },
+      { right: "permanent",   wrong: "permanant"   },
+      { right: "possess",     wrong: "posess"      },
+      { right: "repetition",  wrong: "repitition"  },
+      { right: "ridiculous",  wrong: "rediculous"  },
+      { right: "receipt",     wrong: "reciept"     },
+      { right: "interesting", wrong: "intresting"  },
+      { right: "decision",    wrong: "decison"     },
+      { right: "explanation", wrong: "explination" },
+      { right: "vehicle",     wrong: "vehical"     }
     ],
     // Tier 3
     [
-      { right: "necessary",   wrong: "neccessary"   },
-      { right: "occurred",    wrong: "occured"      },
-      { right: "recommend",   wrong: "reccomend"    },
-      { right: "environment", wrong: "enviroment"   },
-      { right: "restaurant",  wrong: "restaraunt"   },
-      { right: "conscience",  wrong: "concience"    },
-      { right: "embarrass",   wrong: "embarass"     },
-      { right: "guarantee",   wrong: "garantee"     },
-      { right: "cemetery",    wrong: "cemetary"     },
-      { right: "privilege",   wrong: "priviledge"   },
-      { right: "playwright",  wrong: "playwrite"    },
-      { right: "noticeable",  wrong: "noticable"    }
+      { right: "necessary",     wrong: "neccessary"     },
+      { right: "occurred",      wrong: "occured"        },
+      { right: "recommend",     wrong: "reccomend"      },
+      { right: "environment",   wrong: "enviroment"     },
+      { right: "restaurant",    wrong: "restaraunt"     },
+      { right: "conscience",    wrong: "concience"      },
+      { right: "embarrass",     wrong: "embarass"       },
+      { right: "guarantee",     wrong: "garantee"       },
+      { right: "cemetery",      wrong: "cemetary"       },
+      { right: "privilege",     wrong: "priviledge"     },
+      { right: "noticeable",    wrong: "noticable"      },
+      { right: "accidentally",  wrong: "accidently"     },
+      { right: "apparently",    wrong: "apparantly"     },
+      { right: "disappear",     wrong: "dissapear"      },
+      { right: "disappoint",    wrong: "dissapoint"     },
+      { right: "exaggerate",    wrong: "exagerate"      },
+      { right: "pronunciation", wrong: "pronounciation" },
+      { right: "medieval",      wrong: "medeival"       },
+      { right: "personnel",     wrong: "personel"       },
+      { right: "siege",         wrong: "seige"          },
+      { right: "playwright",    wrong: "playwrite"      },
+      { right: "discipline",    wrong: "disipline"      },
+      { right: "convenient",    wrong: "convienient"    },
+      { right: "leisure",       wrong: "liesure"        },
+      { right: "relevant",      wrong: "relevent"       },
+      { right: "jealous",       wrong: "jelous"         }
     ],
-    // Tier 4
+    // Tier 4 - hardest
     [
-      { right: "accommodate",   wrong: "accomodate"     },
-      { right: "entrepreneur",  wrong: "entreprenuer"   },
-      { right: "maintenance",   wrong: "maintainance"   },
-      { right: "millennium",    wrong: "millenium"      },
-      { right: "rhythm",        wrong: "rythm"          },
-      { right: "questionnaire", wrong: "questionaire"   },
-      { right: "bureaucracy",   wrong: "beaurocracy"    },
-      { right: "occasionally",  wrong: "occassionally"  },
-      { right: "liaison",       wrong: "liason"         },
-      { right: "mischievous",   wrong: "mischievious"   },
-      { right: "supersede",     wrong: "supercede"      },
-      { right: "consensus",     wrong: "concensus"      }
+      { right: "accommodate",    wrong: "accomodate"     },
+      { right: "entrepreneur",   wrong: "entreprenuer"   },
+      { right: "maintenance",    wrong: "maintainance"   },
+      { right: "millennium",     wrong: "millenium"      },
+      { right: "rhythm",         wrong: "rythm"          },
+      { right: "questionnaire",  wrong: "questionaire"   },
+      { right: "bureaucracy",    wrong: "beaurocracy"    },
+      { right: "occasionally",   wrong: "occassionally"  },
+      { right: "liaison",        wrong: "liason"         },
+      { right: "mischievous",    wrong: "mischievious"   },
+      { right: "supersede",      wrong: "supercede"      },
+      { right: "consensus",      wrong: "concensus"      },
+      { right: "camouflage",     wrong: "camoflage"      },
+      { right: "chauffeur",      wrong: "chauffer"       },
+      { right: "hierarchy",      wrong: "heirarchy"      },
+      { right: "inoculate",      wrong: "innoculate"     },
+      { right: "perseverance",   wrong: "perserverance"  },
+      { right: "pseudonym",      wrong: "psuedonym"      },
+      { right: "itinerary",      wrong: "itenarary"      },
+      { right: "surveillance",   wrong: "surveilance"    },
+      { right: "acquire",        wrong: "aquire"         },
+      { right: "exhilarate",     wrong: "exilerate"      },
+      { right: "fluorescent",    wrong: "florescent"     },
+      { right: "indispensable",  wrong: "indispensible"  },
+      { right: "reminiscent",    wrong: "reminescent"    },
+      { right: "conscientious",  wrong: "conscientous"   }
     ]
   ];
 
@@ -306,6 +398,9 @@
   const FLY_SPEED       = 1400;
   const FAST_FALL_VY    = 760;
   const BASE_FALL_VY    = 55;
+  const GRAVITY         = 1400;
+  const WALL_DAMP       = 0.35;
+  const FLOOR_BOUNCE    = 0.18;
 
   function measureField() {
     fieldWidth  = window.innerWidth;
@@ -334,7 +429,8 @@
   }
 
   function applyTransform(b) {
-    const rot = b.dragging ? (b.dragX / 28) : 0;
+    let rot = b.angle || 0;
+    if (b.dragging) rot += b.dragX / 28;
     b.el.style.transform =
       "translate(" + (b.x + b.dragX) + "px," + b.y + "px) rotate(" + rot + "deg)";
   }
@@ -379,6 +475,8 @@
       vy: fallSpeed(),
       width: width,
       height: height,
+      angle: 0,
+      omega: 0,
       state: "falling",
       dragX: 0,
       dragging: false,
@@ -453,17 +551,67 @@
     el.addEventListener("pointercancel", finish);
   }
 
-  function settleY(block) {
+  // Returns { stopY, support } - highest top the block would rest on, and the
+  // settled block (or null for floor) directly under its center of mass.
+  function settleInfo(block) {
     let stopY = floorY - block.height;
+    let support = null;
+    let supportLeft = 0;
+    let supportRight = fieldWidth;
+    let onFloor = true;
+
     for (let i = 0; i < blocks.length; i++) {
       const b = blocks[i];
       if (b === block || b.state !== "settled") continue;
       if (block.x + block.width <= b.x) continue;
       if (block.x >= b.x + b.width) continue;
       const top = b.y - block.height;
-      if (top < stopY) stopY = top;
+      if (top < stopY) {
+        stopY = top;
+        support = b;
+        supportLeft = b.x;
+        supportRight = b.x + b.width;
+        onFloor = false;
+      } else if (top === stopY && !onFloor) {
+        // adjacent support of same height — extend the support span
+        supportLeft = Math.min(supportLeft, b.x);
+        supportRight = Math.max(supportRight, b.x + b.width);
+      }
     }
-    return stopY;
+
+    return {
+      stopY: stopY,
+      onFloor: onFloor,
+      supportLeft: supportLeft,
+      supportRight: supportRight
+    };
+  }
+
+  // True if center of mass is over the support span.
+  function isStable(b, info) {
+    if (info.onFloor) return true;
+    const com = b.x + b.width / 2;
+    return com > info.supportLeft + 2 && com < info.supportRight - 2;
+  }
+
+  // Direction (-1 left, +1 right) the block will tip if unstable.
+  function tipDirection(b, info) {
+    const com = b.x + b.width / 2;
+    const supCenter = (info.supportLeft + info.supportRight) / 2;
+    return com < supCenter ? -1 : 1;
+  }
+
+  function startTumble(b, info) {
+    const dir = tipDirection(b, info);
+    b.state = "tumbling";
+    // overhang fraction drives how strong the tip is
+    const overhang = dir < 0
+      ? (info.supportLeft - b.x) / b.width
+      : (b.x + b.width - info.supportRight) / b.width;
+    const k = Math.max(0.2, Math.min(0.9, overhang));
+    b.vx = dir * (80 + k * 220);
+    b.vy = Math.max(b.vy * 0.4, 40);
+    b.omega = dir * (110 + k * 220); // deg / sec
   }
 
   function step(dt) {
@@ -471,38 +619,127 @@
     for (let i = 0; i < blocks.length; i++) {
       const b = blocks[i];
 
-      if (b.state === "falling" || b.state === "falling-fast") {
-        b.y += b.vy * dt;
-        const stop = settleY(b);
-        if (b.y >= stop) {
-          b.y = stop;
-          b.state = "settled";
-          b.el.classList.add("settled");
-          if (b.y < ceilingY) {
-            applyTransform(b);
-            next.push(b);
-            blocks = next.concat(blocks.slice(i + 1));
-            gameOver();
-            return;
+      switch (b.state) {
+
+        case "falling": {
+          b.y += b.vy * dt;
+          const info = settleInfo(b);
+          if (b.y >= info.stopY) {
+            b.y = info.stopY;
+            if (isStable(b, info)) {
+              b.state = "settled";
+              b.angle = 0;
+              b.vx = 0; b.vy = 0; b.omega = 0;
+              b.el.classList.add("settled");
+              if (b.y < ceilingY) {
+                applyTransform(b);
+                next.push(b);
+                for (let j = i + 1; j < blocks.length; j++) next.push(blocks[j]);
+                blocks = next;
+                gameOver();
+                return;
+              }
+            } else {
+              startTumble(b, info);
+            }
           }
+          break;
         }
-      } else if (b.state === "flying-correct") {
-        b.x += b.vx * dt;
-        b.y += b.vy * dt;
-        if (b.x + b.width < -20 || b.x > fieldWidth + 20) {
-          b.state = "gone";
-          b.el.remove();
-          continue;
+
+        case "falling-fast": {
+          b.y += b.vy * dt;
+          const info = settleInfo(b);
+          if (b.y >= info.stopY) {
+            b.y = info.stopY;
+            if (isStable(b, info)) {
+              b.state = "settled";
+              b.angle = 0;
+              b.vx = 0; b.vy = 0; b.omega = 0;
+              b.el.classList.add("settled");
+              if (b.y < ceilingY) {
+                applyTransform(b);
+                next.push(b);
+                for (let j = i + 1; j < blocks.length; j++) next.push(blocks[j]);
+                blocks = next;
+                gameOver();
+                return;
+              }
+            } else {
+              startTumble(b, info);
+            }
+          }
+          break;
         }
-      } else if (b.state === "flying-wrong") {
-        b.x += b.vx * dt;
-        b.y += b.vy * dt;
-        if (b.x < 0 || b.x + b.width > fieldWidth) {
-          b.x = Math.max(0, Math.min(fieldWidth - b.width, b.x));
-          b.vx = 0;
-          b.vy = FAST_FALL_VY;
-          b.state = "falling-fast";
-          b.el.classList.add("fast");
+
+        case "tumbling": {
+          b.vy += GRAVITY * dt;
+          b.x += b.vx * dt;
+          b.y += b.vy * dt;
+          b.angle += b.omega * dt;
+
+          // wall bounce
+          if (b.x < 0) { b.x = 0; b.vx = -b.vx * WALL_DAMP; b.omega *= -WALL_DAMP; }
+          else if (b.x + b.width > fieldWidth) {
+            b.x = fieldWidth - b.width;
+            b.vx = -b.vx * WALL_DAMP;
+            b.omega *= -WALL_DAMP;
+          }
+
+          const info = settleInfo(b);
+          if (b.y >= info.stopY) {
+            b.y = info.stopY;
+            if (isStable(b, info) && Math.abs(b.vy) < 120 && Math.abs(b.vx) < 60) {
+              b.state = "settled";
+              b.angle = 0;
+              b.vx = 0; b.vy = 0; b.omega = 0;
+              b.el.classList.add("settled");
+              if (b.y < ceilingY) {
+                applyTransform(b);
+                next.push(b);
+                for (let j = i + 1; j < blocks.length; j++) next.push(blocks[j]);
+                blocks = next;
+                gameOver();
+                return;
+              }
+            } else {
+              // bounce on contact, lose vertical energy, keep tumbling
+              b.vy = -b.vy * FLOOR_BOUNCE;
+              b.vx *= 0.7;
+              b.omega *= 0.7;
+              if (!isStable(b, info)) {
+                const dir = tipDirection(b, info);
+                if ((dir > 0 && b.vx < 60) || (dir < 0 && b.vx > -60)) {
+                  b.vx += dir * 90;
+                  b.omega += dir * 60;
+                }
+              }
+            }
+          }
+          break;
+        }
+
+        case "flying-correct": {
+          b.x += b.vx * dt;
+          b.y += b.vy * dt;
+          if (b.x + b.width < -20 || b.x > fieldWidth + 20) {
+            b.state = "gone";
+            b.el.remove();
+            continue;
+          }
+          break;
+        }
+
+        case "flying-wrong": {
+          b.x += b.vx * dt;
+          b.y += b.vy * dt;
+          if (b.x < 0 || b.x + b.width > fieldWidth) {
+            b.x = Math.max(0, Math.min(fieldWidth - b.width, b.x));
+            b.vx = 0;
+            b.vy = FAST_FALL_VY;
+            b.state = "falling-fast";
+            b.el.classList.add("fast");
+          }
+          break;
         }
       }
 
