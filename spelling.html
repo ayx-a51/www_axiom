@@ -396,11 +396,11 @@
 
   const SWIPE_THRESHOLD = 60;
   const FLY_SPEED       = 1400;
-  const FAST_FALL_VY    = 760;
   const BASE_FALL_VY    = 55;
   const GRAVITY         = 1400;
   const WALL_DAMP       = 0.35;
-  const FLOOR_BOUNCE    = 0.18;
+  const FLOOR_BOUNCE    = 0.32;
+  const WALL_RESTITUTION = 0.38;
 
   function measureField() {
     fieldWidth  = window.innerWidth;
@@ -655,31 +655,6 @@
           break;
         }
 
-        case "falling-fast": {
-          b.y += b.vy * dt;
-          const info = settleInfo(b);
-          if (b.y >= info.stopY) {
-            b.y = info.stopY;
-            if (isStable(b, info)) {
-              b.state = "settled";
-              b.angle = 0;
-              b.vx = 0; b.vy = 0; b.omega = 0;
-              b.el.classList.add("settled");
-              if (b.y < ceilingY) {
-                applyTransform(b);
-                next.push(b);
-                for (let j = i + 1; j < blocks.length; j++) next.push(blocks[j]);
-                blocks = next;
-                gameOver();
-                return;
-              }
-            } else {
-              startTumble(b, info);
-            }
-          }
-          break;
-        }
-
         case "tumbling": {
           b.vy += GRAVITY * dt;
           b.x += b.vx * dt;
@@ -699,7 +674,8 @@
             b.y = info.stopY;
             if (isStable(b, info) && Math.abs(b.vy) < 120 && Math.abs(b.vx) < 60) {
               b.state = "settled";
-              b.angle = 0;
+              // keep the landing angle (normalized); the settled case eases it flat
+              b.angle = ((b.angle % 360) + 540) % 360 - 180;
               b.vx = 0; b.vy = 0; b.omega = 0;
               b.el.classList.add("settled");
               if (b.y < ceilingY) {
@@ -727,6 +703,14 @@
           break;
         }
 
+        case "settled": {
+          if (b.angle !== 0) {
+            b.angle *= Math.max(0, 1 - 12 * dt);
+            if (Math.abs(b.angle) < 0.4) b.angle = 0;
+          }
+          break;
+        }
+
         case "flying-correct": {
           b.x += b.vx * dt;
           b.y += b.vy * dt;
@@ -742,10 +726,13 @@
           b.x += b.vx * dt;
           b.y += b.vy * dt;
           if (b.x < 0 || b.x + b.width > fieldWidth) {
+            const dir = b.vx > 0 ? 1 : -1;
             b.x = Math.max(0, Math.min(fieldWidth - b.width, b.x));
-            b.vx = 0;
-            b.vy = FAST_FALL_VY;
-            b.state = "falling-fast";
+            // ricochet: reflect off the wall, pop up a little, start spinning
+            b.vx = -dir * FLY_SPEED * WALL_RESTITUTION;
+            b.vy = -260;
+            b.omega = -dir * (240 + Math.random() * 160);
+            b.state = "tumbling";
             b.el.classList.add("fast");
           }
           break;
