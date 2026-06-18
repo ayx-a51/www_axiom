@@ -1262,7 +1262,7 @@
           // postFrame check below still flips the block to red within 380ms.
           wrongFeedback();
           block.penalty = true;
-          block.revealAt = performance.now() + 380;
+          block.revealAt = performance.now() + 220;
           land(block);
           // in flight it passes through still-falling words (see reveal)
           body.collisionFilter.category = CAT_FLYING;
@@ -1319,13 +1319,21 @@
         // safety net for penalty blocks: reveal if the body has come to
         // rest, OR if its deadline expired (so a body that keeps bouncing
         // at speed without ever hitting reveal() can't fly off blue), OR
-        // if it's slowed to a crawl. All three branches eventually flip
-        // the block to its truth color and restore normal collisions.
+        // if it's slowed to a crawl.
         if (b.penalty && !b.revealed && (
               body.isSleeping ||
               body.speed < 0.5 ||
               (b.revealAt && performance.now() > b.revealAt))) {
           reveal(body);
+        }
+        // universal guard: every landed block MUST show its truth color.
+        // For non-penalty blocks land() already calls showTruth, but if it
+        // ever didn't take effect (DOM mid-update, missed event, anything),
+        // this re-applies it. cls.contains is cheap on a small classList.
+        if (!b.el.classList.contains("ok") && !b.el.classList.contains("mis")) {
+          // a still-flying penalty block legitimately has no color yet;
+          // wait for reveal() in that case
+          if (!b.penalty || b.revealed) showTruth(b);
         }
         // if a body somehow escaped the floor, retire it instead of
         // simulating it forever off-screen
