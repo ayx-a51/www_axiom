@@ -29,17 +29,25 @@
   }
   body {
     font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-    background: radial-gradient(ellipse at 50% -8%, #1b2c47 0%, #0c1426 58%, #070b14 100%);
+    background: radial-gradient(ellipse at 50% 50%, #0e1626 0%, #060a14 60%, #03060c 100%);
     color: var(--text);
     user-select: none;
     -webkit-user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   #game {
     position: relative;
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh; /* track the real visible viewport on mobile */
+    /* fixed 9:16 portrait field, fits inside the viewport */
+    width: min(100vw, calc(100dvh * 9 / 16));
+    height: min(100dvh, calc(100vw * 16 / 9));
     overflow: hidden;
+    border-radius: 14px;
+    background: radial-gradient(ellipse at 50% -8%, #1b2c47 0%, #0c1426 58%, #070b14 100%);
+    box-shadow:
+      0 40px 80px -24px rgba(0, 0, 0, 0.75),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
   }
   /* slow-drifting light blobs for subtle depth */
   #game::before {
@@ -70,6 +78,7 @@
     position: absolute;
     inset: 0;
     touch-action: none;
+    container-type: inline-size; /* lets blocks size relative to the box */
   }
   #field.shake { animation: shake 0.36s cubic-bezier(.36,.07,.19,.97); }
   @keyframes shake {
@@ -135,7 +144,7 @@
     color: #f4f7fc;
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: var(--radius);
-    font-size: clamp(16px, 4.6vw, 22px);
+    font-size: clamp(15px, 5cqw, 22px);
     font-weight: 600;
     letter-spacing: 0.3px;
     white-space: nowrap;
@@ -1419,11 +1428,12 @@
   });
 
   window.addEventListener("resize", function () {
-    // Mobile browsers fire resize when the URL bar slides in/out, changing
-    // only the height. Rebuilding the walls mid-game then would jolt the
-    // settled stack, so during play we only react to a real width change
-    // (orientation); height-only churn is ignored.
-    if (running && gameEl.clientWidth === fieldWidth) return;
+    // With letterboxing the box dimensions can change together (it scales to
+    // fit), so we react to any real size change. Identical dimensions during
+    // play are skipped to avoid mobile URL-bar churn rebuilding the walls
+    // and jolting the settled stack.
+    const w = gameEl.clientWidth, h = gameEl.clientHeight;
+    if (running && w === fieldWidth && h === fieldHeight) return;
     measureField();
     buildWalls();
   });
