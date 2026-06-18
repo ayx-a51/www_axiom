@@ -243,6 +243,16 @@
 (function () {
   "use strict";
 
+  // fail loudly (and gracefully) if the physics engine didn't load instead
+  // of throwing on the Matter destructure and leaving a dead Start button
+  if (typeof Matter === "undefined") {
+    const msg = document.getElementById("overlayMsg");
+    const btn = document.getElementById("startBtn");
+    if (msg) msg.textContent = "Couldn't load the game engine. Check your connection and reload.";
+    if (btn) { btn.disabled = true; btn.style.opacity = 0.5; }
+    return;
+  }
+
   // word pairs per language, 5 difficulty tiers each;
   // r = correct spelling, w = common misspelling (never a real word)
   const WORDS = {
@@ -600,6 +610,7 @@
   let lastTime = 0;
   let spawnTimer = 0;
   let stepAcc = 0;
+  let activeDrag = null; // only one block may be dragged at a time
 
   const SWIPE_THRESHOLD = 30;
   const FLY_SPEED       = 1400;          // px/s for swiped blocks
@@ -904,6 +915,8 @@
 
     el.addEventListener("pointerdown", function (e) {
       if (block.state !== "falling") return;
+      if (activeDrag && activeDrag !== block) return; // ignore second finger
+      activeDrag = block;
       block.dragging = true;
       block.startX = e.clientX;
       block.bodyStartX = block.body.position.x;
@@ -921,6 +934,7 @@
     function finish() {
       if (!block.dragging) return;
       block.dragging = false;
+      if (activeDrag === block) activeDrag = null;
       el.classList.remove("dragging");
 
       if (block.state !== "falling") { block.dragX = 0; return; }
@@ -1053,8 +1067,12 @@
       Composite.remove(engine.world, blocks[i].body);
       blocks[i].el.remove();
     }
+    // clear any score popups still animating from the previous round
+    const pops = field.querySelectorAll(".score-pop");
+    for (let i = 0; i < pops.length; i++) pops[i].remove();
     blocks = [];
     recentWords = [];
+    activeDrag = null;
     score = 0;
     spawnTimer = spawnInterval() - 0.6;
     lastTime = 0;
@@ -1109,6 +1127,11 @@
   startBtn.addEventListener("click", start);
 
   window.addEventListener("resize", function () {
+    // Mobile browsers fire resize when the URL bar slides in/out, changing
+    // only the height. Rebuilding the walls mid-game then would jolt the
+    // settled stack, so during play we only react to a real width change
+    // (orientation); height-only churn is ignored.
+    if (running && gameEl.clientWidth === fieldWidth) return;
     measureField();
     buildWalls();
   });
