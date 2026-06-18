@@ -1090,12 +1090,18 @@
     }
 
     const body = Bodies.rectangle(x, -height / 2 - 6, width, height, {
-      friction: 0.45,
-      frictionStatic: 0.7,
-      restitution: 0.25,
+      // friction values were too high: Matter combines block-block static
+      // friction as max(a, b), so frictionStatic: 0.7 let a tumbling block
+      // grip its own chamfered corner hard enough that gravity couldn't
+      // generate enough torque to tip it, and within sleepThreshold steps
+      // it would sleep locked in that pose. Closer to Matter defaults now,
+      // and bodies need to be more clearly at rest before going to sleep.
+      friction: 0.28,
+      frictionStatic: 0.35,
+      restitution: 0.22,
       frictionAir: 0.01,
       chamfer: { radius: 12 }, // matches the visual border-radius
-      sleepThreshold: 45,
+      sleepThreshold: 110,
       collisionFilter: { category: CAT_FALLING, mask: MASK_FALLING }
     });
 
