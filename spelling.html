@@ -7,12 +7,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Spell Drop</title>
 <link rel="icon" href="axiom.ninja.ico" type="image/x-icon">
+<link rel="preload" href="manrope.woff2" as="font" type="font/woff2" crossorigin>
 <style>
   @font-face {
     font-family: "Manrope";
     src: url("manrope.woff2") format("woff2");
     font-weight: 200 800;
-    font-display: swap;
+    /* `optional` skips the swap: if the font isn't ready within ~100ms the
+       browser uses the fallback for the whole session and never re-renders.
+       Combined with the preload above the font is virtually always ready
+       in time, so there's no flash and no title shift. */
+    font-display: optional;
   }
   :root {
     --text: #eaf1fb;
