@@ -252,7 +252,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 14px;
+    padding: 0 18px;
     pointer-events: none;
     z-index: 2;
   }
@@ -374,26 +374,21 @@
   .arrow {
     display: inline-flex;
     align-items: center;
-    padding: 5px 12px;
-    border-radius: 999px;
+    gap: 8px;
     font-size: 10.5px;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.9px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    color: rgba(234, 241, 251, 0.55);
   }
-  .arrow.left  {
-    color: #fca5a5;
-    background: rgba(239, 68, 68, 0.15);
-    border-color: rgba(248, 113, 113, 0.35);
+  .arrow::before, .arrow::after {
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1;
+    opacity: 0.95;
   }
-  .arrow.right {
-    color: #6ee7b7;
-    background: rgba(52, 211, 153, 0.15);
-    border-color: rgba(110, 231, 183, 0.35);
-  }
+  .arrow.left::before  { content: "\2190"; color: #f87171; }  /* red-400 */
+  .arrow.right::after  { content: "\2192"; color: #34d399; }  /* emerald-400 */
   .score-pop {
     position: absolute;
     pointer-events: none;
@@ -426,8 +421,8 @@
     <p id="pauseHint">Tap to continue</p>
   </div>
   <div id="instructions">
-    <span class="arrow left" id="hintLeft">&larr; misspelled</span>
-    <span class="arrow right" id="hintRight">correctly spelled &rarr;</span>
+    <span class="arrow left" id="hintLeft">misspelled</span>
+    <span class="arrow right" id="hintRight">correctly spelled</span>
   </div>
   <div id="overlay">
     <div class="panel">
@@ -790,7 +785,7 @@
     en: {
       tagline: "Words fall from the sky. Swipe right if a word is spelled correctly &mdash; left if it&rsquo;s misspelled.",
       legend: "Be quick &mdash; be sure. Wrong swipes hit the wall and pile up.<br>When the stack reaches the top, the game ends.",
-      hintLeft: "&larr; misspelled", hintRight: "correctly spelled &rarr;",
+      hintLeft: "misspelled", hintRight: "correctly spelled",
       level: "Level", start: "Start", again: "Play again",
       over: "Stack Overflow", scoreLbl: "Score", bestLbl: "Best",
       paused: "Paused", resume: "Tap to continue"
@@ -798,7 +793,7 @@
     de: {
       tagline: "W&ouml;rter fallen vom Himmel. Wische nach rechts, wenn ein Wort richtig geschrieben ist &mdash; nach links, wenn es falsch ist.",
       legend: "Sei schnell &mdash; sei sicher. Falsche Wischer prallen an die Wand und stapeln sich.<br>Erreicht der Stapel die Decke, ist das Spiel vorbei.",
-      hintLeft: "&larr; falsch geschrieben", hintRight: "richtig geschrieben &rarr;",
+      hintLeft: "falsch geschrieben", hintRight: "richtig geschrieben",
       level: "Stufe", start: "Los", again: "Nochmal",
       over: "Stack Overflow", scoreLbl: "Punkte", bestLbl: "Rekord",
       paused: "Pausiert", resume: "Zum Fortsetzen tippen"
@@ -806,7 +801,7 @@
     fr: {
       tagline: "Des mots tombent du ciel. Glisse &agrave; droite si un mot est bien orthographi&eacute; &mdash; &agrave; gauche s&rsquo;il est mal &eacute;crit.",
       legend: "Sois rapide &mdash; sois s&ucirc;r. Les mauvais choix heurtent le mur et s&rsquo;empilent.<br>Quand la pile atteint le haut, la partie est finie.",
-      hintLeft: "&larr; mal orthographi&eacute;", hintRight: "bien orthographi&eacute; &rarr;",
+      hintLeft: "mal orthographi&eacute;", hintRight: "bien orthographi&eacute;",
       level: "Niveau", start: "Démarrer", again: "Rejouer",
       over: "Stack Overflow", scoreLbl: "Score", bestLbl: "Record",
       paused: "En pause", resume: "Touchez pour continuer"
