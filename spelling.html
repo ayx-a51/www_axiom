@@ -112,7 +112,7 @@
   #score.bump { animation: bump 0.32s ease-out; }
   @keyframes bump {
     0%   { transform: scale(1); }
-    35%  { transform: scale(1.32); color: #86efac; }
+    35%  { transform: scale(1.32); color: #6ee7b7; }
     100% { transform: scale(1); }
   }
   #level {
@@ -130,7 +130,7 @@
     z-index: 3;
     pointer-events: none;
     opacity: 0;
-    background: linear-gradient(180deg, rgba(244, 63, 94, 0.55) 0%, rgba(244, 63, 94, 0.12) 55%, transparent 100%);
+    background: linear-gradient(180deg, rgba(192, 38, 211, 0.55) 0%, rgba(192, 38, 211, 0.12) 55%, transparent 100%);
     transition: opacity 0.25s ease;
   }
   #danger.crit { animation: dangerPulse 0.9s ease-in-out infinite; }
@@ -164,19 +164,19 @@
     cursor: default;
   }
   .block.ok {
-    background: linear-gradient(158deg, rgba(74, 222, 128, 0.95) 0%, rgba(22, 163, 74, 0.95) 100%);
-    border-color: rgba(187, 247, 208, 0.36);
+    background: linear-gradient(158deg, rgba(110, 231, 183, 0.95) 0%, rgba(16, 185, 129, 0.95) 100%);
+    border-color: rgba(167, 243, 208, 0.4);
     box-shadow:
-      0 12px 26px -10px rgba(15, 100, 50, 0.65),
-      0 0 18px rgba(74, 222, 128, 0.28),
+      0 12px 26px -10px rgba(5, 130, 100, 0.65),
+      0 0 20px rgba(110, 231, 183, 0.32),
       inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
   .block.mis {
-    background: linear-gradient(158deg, rgba(251, 113, 133, 0.95) 0%, rgba(225, 29, 72, 0.95) 100%);
-    border-color: rgba(254, 205, 211, 0.36);
+    background: linear-gradient(158deg, rgba(232, 121, 249, 0.95) 0%, rgba(192, 38, 211, 0.95) 100%);
+    border-color: rgba(245, 208, 254, 0.4);
     box-shadow:
-      0 12px 26px -10px rgba(150, 25, 50, 0.65),
-      0 0 18px rgba(251, 113, 133, 0.28),
+      0 12px 26px -10px rgba(120, 22, 140, 0.65),
+      0 0 20px rgba(232, 121, 249, 0.32),
       inset 0 1px 0 rgba(255, 255, 255, 0.28);
   }
   #floor {
@@ -230,7 +230,7 @@
     z-index: 50;
     pointer-events: none;
     opacity: 0;
-    box-shadow: inset 0 0 130px 26px rgba(244, 63, 94, 0.72);
+    box-shadow: inset 0 0 130px 26px rgba(192, 38, 211, 0.72);
   }
   #flash.show { animation: flashRed 0.42s ease-out; }
   @keyframes flashRed {
@@ -240,13 +240,13 @@
   }
   #instructions {
     position: absolute;
-    bottom: calc(env(safe-area-inset-bottom, 0) + 12px);
     left: 0; right: 0;
-    text-align: center;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--muted);
-    letter-spacing: 0.5px;
+    bottom: 0;
+    height: 38px; /* sits inside the floor strip, vertically centered */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
     pointer-events: none;
     z-index: 2;
   }
@@ -366,20 +366,34 @@
     line-height: 1.7;
   }
   .arrow {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 8px;
-    margin: 0 3px;
-    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
-  .arrow.left  { background: rgba(251, 113, 133, 0.18); color: #fda4af; }
-  .arrow.right { background: rgba(74, 222, 128, 0.18); color: #86efac; }
+  .arrow.left  {
+    color: #f0abfc;
+    background: rgba(192, 38, 211, 0.14);
+    border-color: rgba(232, 121, 249, 0.32);
+  }
+  .arrow.right {
+    color: #6ee7b7;
+    background: rgba(16, 185, 129, 0.14);
+    border-color: rgba(110, 231, 183, 0.32);
+  }
   .score-pop {
     position: absolute;
     pointer-events: none;
     font-weight: 800;
     font-size: 24px;
-    color: #86efac;
+    color: #6ee7b7;
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
     animation: floatUp 0.75s ease-out forwards;
   }
