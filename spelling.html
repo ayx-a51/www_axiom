@@ -1262,7 +1262,7 @@
           // postFrame check below still flips the block to red within 380ms.
           wrongFeedback();
           block.penalty = true;
-          block.revealAt = performance.now() + 220;
+          block.revealAt = performance.now() + 160;
           land(block);
           // in flight it passes through still-falling words (see reveal)
           body.collisionFilter.category = CAT_FLYING;
@@ -1316,15 +1316,22 @@
           continue;
         }
       } else if (b.state === "landed") {
-        // safety net for penalty blocks: reveal if the body has come to
-        // rest, OR if its deadline expired (so a body that keeps bouncing
-        // at speed without ever hitting reveal() can't fly off blue), OR
-        // if it's slowed to a crawl.
-        if (b.penalty && !b.revealed && (
-              body.isSleeping ||
-              body.speed < 0.5 ||
-              (b.revealAt && performance.now() > b.revealAt))) {
-          reveal(body);
+        // safety net for penalty blocks. Reveal triggers if:
+        //   - the body is sleeping
+        //   - speed is low (raised threshold: a block jostled by neighbors
+        //     above it can sit at 0.6-1.5 indefinitely without sleeping)
+        //   - the hard deadline expired
+        //   - the body has touched the floor or another settled block
+        //     (height-wise it's in the bottom half of the field and not
+        //     moving fast - so it's effectively "in the stack")
+        if (b.penalty && !b.revealed) {
+          const inStack = body.bounds.max.y > floorY - 200 && body.speed < 4;
+          if (body.isSleeping ||
+              body.speed < 1.6 ||
+              (b.revealAt && performance.now() > b.revealAt) ||
+              inStack) {
+            reveal(body);
+          }
         }
         // universal guard: every landed block MUST show its truth color.
         // For non-penalty blocks land() already calls showTruth, but if it
