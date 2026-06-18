@@ -374,21 +374,46 @@
   .arrow {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
     font-size: 10.5px;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.9px;
-    color: rgba(234, 241, 251, 0.55);
+    color: rgba(234, 241, 251, 0.65);
   }
+  /* the arrow itself is a mini-block: same gradient family, border and glow
+     as the actual game tiles, with a bold white chevron inside */
   .arrow::before, .arrow::after {
-    font-size: 15px;
-    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 28px;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    color: #ffffff;
+    font-size: 17px;
+    font-weight: 900;
     line-height: 1;
-    opacity: 0.95;
   }
-  .arrow.left::before  { content: "\2190"; color: #f87171; }  /* red-400 */
-  .arrow.right::after  { content: "\2192"; color: #34d399; }  /* emerald-400 */
+  .arrow.left::before {
+    content: "\2190";
+    background: linear-gradient(158deg, rgba(239, 68, 68, 0.95) 0%, rgba(185, 28, 28, 0.95) 100%);
+    border-color: rgba(254, 202, 202, 0.42);
+    box-shadow:
+      0 5px 14px -4px rgba(120, 20, 20, 0.65),
+      0 0 12px rgba(239, 68, 68, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  }
+  .arrow.right::after {
+    content: "\2192";
+    background: linear-gradient(158deg, rgba(52, 211, 153, 0.95) 0%, rgba(5, 150, 105, 0.95) 100%);
+    border-color: rgba(167, 243, 208, 0.4);
+    box-shadow:
+      0 5px 14px -4px rgba(6, 95, 70, 0.65),
+      0 0 12px rgba(52, 211, 153, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  }
   .score-pop {
     position: absolute;
     pointer-events: none;
