@@ -73,7 +73,7 @@
     inset: 0;
     z-index: 4;
     pointer-events: none;
-    box-shadow: inset 0 0 180px 44px rgba(0, 0, 0, 0.55);
+    box-shadow: inset 0 0 130px 22px rgba(0, 0, 0, 0.4);
   }
   @keyframes drift {
     0%   { transform: translate3d(-3%, -2%, 0) scale(1); }
@@ -192,9 +192,9 @@
     z-index: 1;
     pointer-events: none;
     background:
-      linear-gradient(180deg, rgba(54, 74, 88, 0.6) 0%, rgba(22, 34, 44, 0.92) 100%);
+      linear-gradient(180deg, rgba(106, 128, 156, 0.62) 0%, rgba(60, 78, 102, 0.82) 100%);
     border-top: 2px solid rgba(129, 140, 248, 0.85);
-    box-shadow: 0 -8px 22px -6px rgba(99, 102, 241, 0.24);
+    box-shadow: 0 -8px 22px -6px rgba(99, 102, 241, 0.28);
   }
   .puff {
     position: absolute;
@@ -381,13 +381,12 @@
     letter-spacing: 0.9px;
     color: rgba(234, 241, 251, 0.65);
   }
-  /* the arrow is a mini-block in the matching color family with a crisp
-     inline-SVG icon centered on top of the gradient. Paths use absolute
-     coordinates only (no relative-cleverness like "l7 7-7 7" that the
-     parser must split at the minus sign), and stroke-width 4.5 so the
-     arrow reads as chunky and unmistakable at the small pill size.
-     left:  shaft (19,12) -> (5,12)   chevron point at (5,12)
-     right: shaft (5,12)  -> (19,12)  chevron point at (19,12)   */
+  /* the arrow is a mini-block in the matching color family with a solid
+     filled SVG arrow icon centered on top of the gradient. Filled, not
+     stroked, so the whole shape is white instead of a wireframe outline.
+     Single closed polygon tracing chevron + shaft perimeter.
+     left:  point at (3,12), shaft extending right to x=21
+     right: point at (21,12), shaft extending left to x=3        */
   .arrow::before, .arrow::after {
     content: "";
     display: inline-block;
@@ -395,13 +394,14 @@
     height: 28px;
     border-radius: 9px;
     border: 1px solid transparent;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 22px auto;
   }
+  /* `background:` shorthand sets per-layer sizing. SVG icon stays 22px,
+     the gradient layer (after the comma) has no size and so fills the
+     whole pill. Setting only top-level background-size: 22px shrank
+     BOTH layers, leaving the pill mostly transparent. */
   .arrow.left::before {
-    background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 12 L5 12 M12 5 L5 12 L12 19'/%3E%3C/svg%3E"),
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M3 12L12 3V9H21V15H12V21Z'/%3E%3C/svg%3E") no-repeat center / 22px,
       linear-gradient(158deg, rgba(239, 68, 68, 0.95) 0%, rgba(185, 28, 28, 0.95) 100%);
     border-color: rgba(254, 202, 202, 0.42);
     box-shadow:
@@ -410,8 +410,8 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.32);
   }
   .arrow.right::after {
-    background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12 L19 12 M12 5 L19 12 L12 19'/%3E%3C/svg%3E"),
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M21 12L12 3V9H3V15H12V21Z'/%3E%3C/svg%3E") no-repeat center / 22px,
       linear-gradient(158deg, rgba(52, 211, 153, 0.95) 0%, rgba(5, 150, 105, 0.95) 100%);
     border-color: rgba(167, 243, 208, 0.4);
     box-shadow:
