@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Spell Drop</title>
 <link rel="icon" href="axiom.ninja.ico" type="image/x-icon">
@@ -633,8 +635,12 @@
     }
   };
 
+  // validate against an explicit allowlist, not `WORDS[lang]`: a value like
+  // "__proto__" or "constructor" would pass a truthy property-lookup check
+  // (inherited from Object.prototype) and then crash the round
+  const LANGS = ["en", "de", "fr"];
   let lang = localStorage.getItem("spellDrop.lang");
-  if (!WORDS[lang]) lang = "en";
+  if (LANGS.indexOf(lang) === -1) lang = "en";
 
   let fieldWidth, fieldHeight, floorY, ceilingY;
   let blocks = [];
