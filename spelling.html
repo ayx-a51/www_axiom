@@ -117,7 +117,7 @@
   #score.bump { animation: bump 0.32s ease-out; }
   @keyframes bump {
     0%   { transform: scale(1); }
-    35%  { transform: scale(1.32); color: #6ee7b7; }
+    35%  { transform: scale(1.32); color: #6ee7a0; }
     100% { transform: scale(1); }
   }
   #level {
@@ -135,7 +135,7 @@
     z-index: 3;
     pointer-events: none;
     opacity: 0;
-    background: linear-gradient(180deg, rgba(192, 38, 211, 0.55) 0%, rgba(192, 38, 211, 0.12) 55%, transparent 100%);
+    background: linear-gradient(180deg, rgba(236, 72, 153, 0.55) 0%, rgba(236, 72, 153, 0.12) 55%, transparent 100%);
     transition: opacity 0.25s ease;
   }
   #danger.crit { animation: dangerPulse 0.9s ease-in-out infinite; }
@@ -169,19 +169,22 @@
     cursor: default;
   }
   .block.ok {
-    background: linear-gradient(158deg, rgba(110, 231, 183, 0.95) 0%, rgba(16, 185, 129, 0.95) 100%);
-    border-color: rgba(167, 243, 208, 0.4);
+    /* spring-green at hue ~145, ~28 from teal-173 so it reads as
+       distinctly green at a glance rather than a teal variant */
+    background: linear-gradient(158deg, rgba(76, 224, 133, 0.95) 0%, rgba(16, 165, 85, 0.95) 100%);
+    border-color: rgba(180, 245, 210, 0.4);
     box-shadow:
-      0 12px 26px -10px rgba(5, 130, 100, 0.65),
-      0 0 20px rgba(110, 231, 183, 0.32),
+      0 12px 26px -10px rgba(8, 130, 60, 0.65),
+      0 0 20px rgba(76, 224, 133, 0.32),
       inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
   .block.mis {
-    background: linear-gradient(158deg, rgba(232, 121, 249, 0.95) 0%, rgba(192, 38, 211, 0.95) 100%);
-    border-color: rgba(245, 208, 254, 0.4);
+    /* pink-magenta at hue ~328 (pink-500 -> pink-700): warm, not purple */
+    background: linear-gradient(158deg, rgba(236, 72, 153, 0.95) 0%, rgba(190, 24, 93, 0.95) 100%);
+    border-color: rgba(252, 207, 224, 0.42);
     box-shadow:
-      0 12px 26px -10px rgba(120, 22, 140, 0.65),
-      0 0 20px rgba(232, 121, 249, 0.32),
+      0 12px 26px -10px rgba(150, 18, 70, 0.65),
+      0 0 20px rgba(236, 72, 153, 0.32),
       inset 0 1px 0 rgba(255, 255, 255, 0.28);
   }
   #floor {
@@ -235,7 +238,7 @@
     z-index: 50;
     pointer-events: none;
     opacity: 0;
-    box-shadow: inset 0 0 130px 26px rgba(192, 38, 211, 0.72);
+    box-shadow: inset 0 0 130px 26px rgba(236, 72, 153, 0.72);
   }
   #flash.show { animation: flashRed 0.42s ease-out; }
   @keyframes flashRed {
@@ -384,21 +387,21 @@
     -webkit-backdrop-filter: blur(8px);
   }
   .arrow.left  {
-    color: #f0abfc;
-    background: rgba(192, 38, 211, 0.14);
-    border-color: rgba(232, 121, 249, 0.32);
+    color: #f8a5cb;
+    background: rgba(236, 72, 153, 0.15);
+    border-color: rgba(244, 114, 182, 0.35);
   }
   .arrow.right {
-    color: #6ee7b7;
-    background: rgba(16, 185, 129, 0.14);
-    border-color: rgba(110, 231, 183, 0.32);
+    color: #6ee7a0;
+    background: rgba(76, 224, 133, 0.15);
+    border-color: rgba(134, 239, 172, 0.35);
   }
   .score-pop {
     position: absolute;
     pointer-events: none;
     font-weight: 800;
     font-size: 24px;
-    color: #6ee7b7;
+    color: #6ee7a0;
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
     animation: floatUp 0.75s ease-out forwards;
   }
