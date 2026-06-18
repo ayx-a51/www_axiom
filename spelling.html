@@ -85,14 +85,12 @@
     touch-action: none;
     container-type: inline-size; /* lets blocks size relative to the box */
   }
-  #field.shake { animation: shake 0.36s cubic-bezier(.36,.07,.19,.97); }
+  #field.shake { animation: shake 0.28s cubic-bezier(.36,.07,.19,.97); }
   @keyframes shake {
     0%,100% { transform: translateX(0); }
-    15% { transform: translateX(-7px); }
-    32% { transform: translateX(6px); }
-    50% { transform: translateX(-5px); }
-    68% { transform: translateX(4px); }
-    85% { transform: translateX(-2px); }
+    25% { transform: translateX(-3px); }
+    55% { transform: translateX(2px); }
+    85% { transform: translateX(-1px); }
   }
   #hud {
     position: absolute;
@@ -238,12 +236,12 @@
     z-index: 50;
     pointer-events: none;
     opacity: 0;
-    box-shadow: inset 0 0 130px 26px rgba(236, 72, 153, 0.72);
+    box-shadow: inset 0 0 70px 10px rgba(236, 72, 153, 0.42);
   }
-  #flash.show { animation: flashRed 0.42s ease-out; }
+  #flash.show { animation: flashRed 0.32s ease-out; }
   @keyframes flashRed {
     0%   { opacity: 0; }
-    22%  { opacity: 1; }
+    25%  { opacity: 1; }
     100% { opacity: 0; }
   }
   #instructions {
