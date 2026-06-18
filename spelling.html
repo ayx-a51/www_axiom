@@ -1231,9 +1231,13 @@
           bumpScore();
         } else {
           // wrong call: full physics from here on - wall ricochet, bounces,
-          // spin. The red reveal waits until the first impact.
+          // spin. The red reveal waits until the first impact, but with a
+          // hard deadline as a safety net: if for whatever reason the engine
+          // never fires reveal() via collisionStart/collisionActive, the
+          // postFrame check below still flips the block to red within 380ms.
           wrongFeedback();
           block.penalty = true;
+          block.revealAt = performance.now() + 380;
           land(block);
           // in flight it passes through still-falling words (see reveal)
           body.collisionFilter.category = CAT_FLYING;
@@ -1287,10 +1291,15 @@
           continue;
         }
       } else if (b.state === "landed") {
-        // safety net: a penalty block that came to rest without ever
-        // triggering a contact event still gets revealed and rejoins
-        // normal collisions, so it can't sit grey blocking the stack
-        if (b.penalty && !b.revealed && (body.isSleeping || body.speed < 0.5)) {
+        // safety net for penalty blocks: reveal if the body has come to
+        // rest, OR if its deadline expired (so a body that keeps bouncing
+        // at speed without ever hitting reveal() can't fly off blue), OR
+        // if it's slowed to a crawl. All three branches eventually flip
+        // the block to its truth color and restore normal collisions.
+        if (b.penalty && !b.revealed && (
+              body.isSleeping ||
+              body.speed < 0.5 ||
+              (b.revealAt && performance.now() > b.revealAt))) {
           reveal(body);
         }
         // if a body somehow escaped the floor, retire it instead of
