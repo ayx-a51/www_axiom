@@ -1247,8 +1247,17 @@
 
         if (userRight) {
           block.state = "cleared";
-          body.isSensor = true; // glide out without disturbing the stack
-          Body.setVelocity(body, { x: dir * FLY_SPEED * PX_PER_STEP, y: -2 });
+          // belt-and-braces "collide with nothing":
+          //   - isSensor stops collision response in the solver
+          //   - mask=0 stops the pair from even being detected (handles the
+          //     case where the body was already in contact with a wall when
+          //     swiped, which isSensor alone doesn't always sort out cleanly)
+          //   - frictionAir=0 so air drag can't slow the body to a stop
+          //     mid-flight, leaving a phantom block on the field forever
+          body.isSensor = true;
+          body.collisionFilter.mask = 0;
+          body.frictionAir = 0;
+          Body.setVelocity(body, { x: dir * FLY_SPEED * PX_PER_STEP, y: -4 });
           Body.setAngularVelocity(body, dir * 0.04);
           score++;
           updateHUD();
@@ -1309,7 +1318,10 @@
       }
 
       if (b.state === "cleared") {
-        if (body.position.x < -b.width || body.position.x > fieldWidth + b.width) {
+        // also check Y bounds: a cleared block can drift down or up if
+        // somehow stuck; without this it'd live forever in the simulation
+        if (body.position.x < -b.width || body.position.x > fieldWidth + b.width ||
+            body.position.y > fieldHeight + 400 || body.position.y < -400) {
           Composite.remove(engine.world, body);
           b.el.remove();
           b.state = "gone";
