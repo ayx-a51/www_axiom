@@ -1572,13 +1572,16 @@ function pickQType(w) {
   const s = state.words[w.id];
   const box = s ? s.box : 0;
   const listen = canHear(w);
-  let pool;
+  let pool;   // erster Eintrag wird bevorzugt (60%)
   if (w.cat === 'satz') {
     pool = listen ? ['listenDE', 'mcFRDE'] : ['mcFRDE'];
-  } else if (box <= 1) {
-    pool = listen ? ['mcFRDE', 'listenDE'] : ['mcFRDE'];
+  } else if (box === 0) {
+    // beide Auswahl-Richtungen von Anfang an; Tippen erst später
+    pool = listen ? ['mcFRDE', 'mcDEFR', 'listenDE'] : ['mcFRDE', 'mcDEFR'];
+  } else if (box === 1) {
+    pool = listen ? ['mcDEFR', 'mcFRDE', 'listenDE'] : ['mcDEFR', 'mcFRDE'];
   } else if (box === 2) {
-    pool = listen ? ['mcDEFR', 'listenFR', 'mcFRDE'] : ['mcDEFR', 'mcFRDE'];
+    pool = listen ? ['listenFR', 'mcDEFR', 'mcFRDE'] : ['mcDEFR', 'mcFRDE'];
   } else if (box === 3) {
     pool = listen ? ['typeDE', 'mcDEFR', 'listenFR'] : ['typeDE', 'mcDEFR'];
   } else {
@@ -2120,7 +2123,7 @@ history.replaceState({ s: 'home', u: null }, '');
 // kleine Test-Hilfe (bewusst zugänglich – die App ist privat)
 window.__nea = {
   vocab: VOCAB,
-  grade, ws, promote, demote, audioSlug, canHear, flushSave,
+  grade, ws, promote, demote, audioSlug, canHear, flushSave, pickQType,
   get quiz() { return quiz; },
   get state() { return state; },
   get tts() { return TTS; },
