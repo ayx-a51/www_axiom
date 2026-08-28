@@ -2,9 +2,9 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; media-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#FBF6EE">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -25,7 +25,7 @@
     --bg: #FBF6EE;
     --surface: #FFFFFF;
     --ink: #423B33;
-    --muted: #93887A;
+    --muted: #7A6F60;   /* 4.6:1 auf Creme – lesbarer Kontrast */
     --line: #EDE4D7;
     --primary: #EE6C4D;
     --primary-press: #D95B3E;
@@ -508,6 +508,7 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     .fcard { transition: none; }
+    .toast.show { animation: none; opacity: 1; }   /* Lob bleibt ohne Animation sichtbar */
   }
 </style>
 </head>
@@ -587,6 +588,11 @@ const VOCAB = [
   { u: '3', cat: 'verb', fr: 'expérimenter',    de: 'experimentieren' },
   { u: '3', cat: 'verb', fr: 'parler français', de: 'Französisch sprechen' },
 ];
+
+/* Aufnahmen einer echten französischen Stimme liegen in french/audio/.
+   Diese Liste pflegt `node french/generate-audio.mjs` — nicht von Hand ändern.
+   Fehlt eine Aufnahme, nutzt die App automatisch die Browser-Stimme. */
+const AUDIO = /*AUDIO-MAP*/{}/*AUDIO-MAP-END*/;
 
 /* ================= Utilities ================= */
 
@@ -705,23 +711,24 @@ function grade(userRaw, w, lang) {
   for (const t0 of targets) {
     const t = norm(t0);
     const tf = fold(t);
+    const disp = lang === 'fr' ? t0 : display;   // im Hinweis die getroffene Form zeigen
     // nur Akzente/Umlaute falsch
-    if (uf === tf) return { v: 'almost', note: 'Achte auf die Akzente: ' + display };
+    if (uf === tf) return { v: 'almost', note: 'Achte auf die Akzente: ' + disp };
     // Artikel vergessen
     if (hasArt(t, lang) && !hasArt(u, lang)) {
       if (u === stripArt(t, lang) || uf === fold(stripArt(t, lang))) {
-        return { v: 'almost', note: 'Mit Artikel: ' + display };
+        return { v: 'almost', note: 'Mit Artikel: ' + disp };
       }
     }
     // Elision/Leerzeichen (z.B. «lallemand» / «l allemand»)
-    if (squash(u) === squash(t)) return { v: 'almost', note: 'Genau hinschauen: ' + display };
+    if (squash(u) === squash(t)) return { v: 'almost', note: 'Genau hinschauen: ' + disp };
     // falscher Artikel → zählt als falsch, mit gezieltem Hinweis
     if (hasArt(t, lang) && hasArt(u, lang) && stripArt(uf, lang) === stripArt(tf, lang)) {
-      return { v: 'wrong', note: 'Achtung, der Artikel: ' + display };
+      return { v: 'wrong', note: 'Achtung, der Artikel: ' + disp };
     }
     // kleiner Tippfehler (1 Buchstabe daneben) bei längeren Wörtern
     if (tf.length >= 6 && !ALL_TARGETS[lang].has(uf) && editDist1(uf, tf) <= 1) {
-      return { v: 'almost', note: 'Kleiner Tippfehler! Richtig: ' + display };
+      return { v: 'almost', note: 'Kleiner Tippfehler! Richtig: ' + disp };
     }
   }
   return { v: 'wrong' };
@@ -807,10 +814,10 @@ function recordAttempt(id, ok) {
 function promote(id) {
   const s = ws(id);
   const t = todayStr();
-  if (s.lp === t || s.box >= 4) return;      // max. 1 Aufstieg pro Tag
-  s.box++;
+  if (s.lp === t) return;                    // max. 1 Aufstieg pro Tag
+  if (s.box < 4) s.box++;
   s.lp = t;
-  s.due = addDaysStr(INTERVALS[s.box]);
+  s.due = addDaysStr(INTERVALS[s.box]);      // auch Kästchen 4 neu einplanen (+21 Tage)
   save();
 }
 function demote(id) {
@@ -905,7 +912,14 @@ if ('speechSynthesis' in window) {
   let tries = 0;
   const pollT = setInterval(() => {
     refreshVoices();
-    if (TTS.voices.length || ++tries > 16) clearInterval(pollT);
+    if (TTS.voices.length || ++tries > 16) {
+      clearInterval(pollT);
+      // Liste bleibt leer → als «keine Stimme» werten (voiceschanged kann es später zurücknehmen)
+      if (!TTS.voices.length) {
+        TTS.none = true;
+        setTimeout(() => { if (screenNow.s === 'home') renderHome(); }, 0);
+      }
+    }
   }, 250);
 } else {
   TTS.none = true;
@@ -913,12 +927,19 @@ if ('speechSynthesis' in window) {
 function ttsOk() {
   return 'speechSynthesis' in window && !TTS.none;
 }
+TTS.seq = 0;
 function speak(text, opts) {
   opts = opts || {};
+  stopFilePlayback();
   if (!ttsOk()) { if (opts.onend) opts.onend(); return; }
   try { speechSynthesis.cancel(); } catch (e) {}
   if (TTS.onDone) { const f = TTS.onDone; TTS.onDone = null; f(); }
+  let fired = false;
+  const fire = () => { if (fired) return; fired = true; if (opts.onend) opts.onend(); };
+  TTS.onDone = fire;
+  const my = ++TTS.seq;
   setTimeout(() => {
+    if (my !== TTS.seq) { fire(); return; }   // inzwischen kam ein neuerer Aufruf
     const u = new SpeechSynthesisUtterance(stripParens(text));
     if (TTS.voice) u.voice = TTS.voice;
     u.lang = (TTS.voice && TTS.voice.lang) || 'fr-FR';
@@ -927,9 +948,8 @@ function speak(text, opts) {
     TTS.currentU = u;
     const done = () => {
       if (TTS.currentU === u) { TTS.currentU = null; TTS.onDone = null; }
-      if (opts.onend) opts.onend();
+      fire();
     };
-    TTS.onDone = opts.onend || null;
     u.onend = done;
     u.onerror = done;
     if (opts.onstart) u.onstart = opts.onstart;
@@ -937,6 +957,51 @@ function speak(text, opts) {
     // Fallback, falls onend nie feuert (manche Android-Engines)
     setTimeout(() => { if (TTS.currentU === u) done(); }, Math.max(3000, text.length * 130));
   }, 60);
+}
+
+/* ---------- Abspielen der echten Aufnahmen (french/audio/*.mp3) ---------- */
+
+const PLAYER = { el: null, stop: null, unlocked: false };
+
+// identisch in generate-audio.mjs halten!
+function audioSlug(s) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/œ/g, 'oe').replace(/æ/g, 'ae')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+function hasFile(w) { return !!AUDIO[audioSlug(w.id)]; }
+// Kann dieses Wort (bzw. überhaupt etwas) vorgelesen werden?
+function canHear(w) {
+  return w ? (hasFile(w) || ttsOk()) : (Object.keys(AUDIO).length > 0 || ttsOk());
+}
+function stopFilePlayback() {
+  if (PLAYER.el) { try { PLAYER.el.pause(); } catch (e) {} }
+  if (PLAYER.stop) { const s = PLAYER.stop; PLAYER.stop = null; s(); }
+}
+// Hauptweg für Wort-Audio: Aufnahme, sonst Browser-Stimme
+function playWord(w, opts) {
+  opts = opts || {};
+  if (!hasFile(w)) { speak(w.tts, opts); return; }
+  try { speechSynthesis.cancel(); } catch (e) {}
+  if (TTS.onDone) { const f = TTS.onDone; TTS.onDone = null; f(); }
+  stopFilePlayback();
+  const el = PLAYER.el || (PLAYER.el = new Audio());
+  let finished = false;
+  const done = (fallback) => {
+    if (finished) return;
+    finished = true;
+    if (PLAYER.stop === stopThis) PLAYER.stop = null;
+    if (fallback) { speak(w.tts, opts); return; }
+    if (opts.onend) opts.onend();
+  };
+  const stopThis = () => done(false);
+  PLAYER.stop = stopThis;
+  el.onended = () => done(false);
+  el.onerror = () => done(true);            // Datei fehlt/kaputt → Browser-Stimme
+  el.onplaying = opts.onstart || null;
+  el.src = 'audio/' + audioSlug(w.id) + '.mp3';
+  const p = el.play();
+  if (p && p.catch) p.catch(() => done(true));
 }
 // iOS: nach Rückkehr in den Vordergrund festgefahrene Sprachausgabe lösen
 document.addEventListener('visibilitychange', () => {
@@ -949,16 +1014,28 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('pageshow', () => {
   try { speechSynthesis.resume(); speechSynthesis.cancel(); } catch (e) {}
 });
-// Erste Berührung: Sprachausgabe „aufwecken" (iOS-Geste) + Audio-Kontext
+// Erste Berührung: Sprachausgabe „aufwecken" (iOS-Geste) + Audio freischalten
 document.addEventListener('pointerdown', function unlock() {
-  if (!TTS.unlocked && 'speechSynthesis' in window) {
-    TTS.unlocked = true;
+  if ('speechSynthesis' in window) {
     try {
       const u = new SpeechSynthesisUtterance(' ');
       u.volume = 0;
       speechSynthesis.speak(u);
     } catch (e) {}
     refreshVoices();
+  }
+  TTS.unlocked = true;
+  if (!PLAYER.unlocked) {
+    PLAYER.unlocked = true;
+    try {
+      const el = PLAYER.el || (PLAYER.el = new Audio());
+      // stilles Mini-WAV: registriert die Nutzer-Geste für spätere play()-Aufrufe
+      el.muted = true;
+      el.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+      const p = el.play();
+      if (p && p.catch) p.catch(() => {});
+      setTimeout(() => { try { el.pause(); el.muted = false; } catch (e) {} }, 100);
+    } catch (e) {}
   }
   SFX.ensure();
   document.removeEventListener('pointerdown', unlock);
@@ -979,18 +1056,21 @@ function speakWith(v, text) {
   }, 60);
 }
 
-// Sprech-Knopf-Animation an ein Element binden
-function speakWithPulse(text, el) {
-  if (!el) { speak(text); return; }
-  el.classList.add('speaking');
+// Sprech-Knopf-Animation an ein Element binden; w ist ein Wort-Objekt
+// (Aufnahme bevorzugt) oder ein roher Text (immer Browser-Stimme)
+function speakWithPulse(w, el) {
+  const go = (opts) => (w && typeof w === 'object') ? playWord(w, opts) : speak(w, opts);
+  if (!el) { go({}); return; }
   const row = el.closest('.wrow');
+  const cleanup = () => {
+    el.classList.remove('speaking');
+    if (row) row.classList.remove('speaking');
+  };
+  go({ onend: cleanup });
+  // Klassen NACH dem Start setzen, damit das Aufräumen des vorigen
+  // Abspielens sie nicht gleich wieder entfernt
+  el.classList.add('speaking');
   if (row) row.classList.add('speaking');
-  speak(text, {
-    onend: () => {
-      el.classList.remove('speaking');
-      if (row) row.classList.remove('speaking');
-    },
-  });
 }
 
 /* ================= Töne (WebAudio, ohne Dateien) ================= */
@@ -1128,7 +1208,14 @@ function renderScreen(next) {
 }
 window.addEventListener('popstate', (e) => {
   try { speechSynthesis.cancel(); } catch (err) {}
+  stopFilePlayback();
+  if (quiz && quiz.timer) { clearTimeout(quiz.timer); quiz.timer = null; }
   hideFeedback();
+  // Systemgeste «zurück» schliesst zuerst das Einstellungs-Blatt
+  if ($('#sheet').classList.contains('show')) {
+    hideSheet();
+    return;
+  }
   const st = (e.state && e.state.s) ? e.state : { s: 'home', u: null };
   renderScreen(st);
   showScreen(st, true);
@@ -1162,7 +1249,9 @@ function weakWords() {
 function renderHome() {
   const due = buildTrainingRound();
   const weak = weakWords();
-  const streakN = state.streak.count;
+  // abgelaufene Serie nicht mehr anzeigen (gleiche Regel wie in notePractice)
+  const alive = state.streak.last && dayDiff(state.streak.last, todayStr()) <= 2;
+  const streakN = alive ? state.streak.count : 0;
   const doneToday = practicedToday();
 
   let unitsHtml = '';
@@ -1198,7 +1287,7 @@ function renderHome() {
     ? '<button class="btn soft weakbtn" id="btn-weak">Knifflige Wörter üben (' + weak.length + ')</button>'
     : '';
 
-  const noVoiceHtml = (TTS.none && !noVoiceDismissed)
+  const noVoiceHtml = (TTS.none && Object.keys(AUDIO).length === 0 && !noVoiceDismissed)
     ? '<div class="notice"><span>Auf diesem Gerät gibt es keine französische Stimme – die App funktioniert trotzdem, einfach ohne Ton.</span><button id="btn-nv-ok" aria-label="Hinweis schliessen">OK</button></div>'
     : '';
 
@@ -1283,7 +1372,7 @@ function renderListen(uk) {
           '<span class="w-fr" lang="fr" style="display:block">' + esc(w.fr) + '</span>' +
           '<span class="w-de" style="display:block">' + esc(w.de) + '</span>' +
         '</span>' + dots +
-        '<span class="spk' + (ttsOk() ? '' : ' off') + '" aria-hidden="true">' + IC.speaker + '</span>' +
+        '<span class="spk' + (canHear(w) ? '' : ' off') + '" aria-hidden="true">' + IC.speaker + '</span>' +
       '</button></li>';
   }
   $('#scr-listen').innerHTML =
@@ -1297,7 +1386,7 @@ function renderListen(uk) {
   $$('.wrow', $('#scr-listen')).forEach(b => {
     b.addEventListener('click', () => {
       const w = BY_ID[b.dataset.id];
-      if (w) speakWithPulse(w.tts, $('.spk', b));
+      if (w) speakWithPulse(w, $('.spk', b));
     });
   });
 }
@@ -1345,7 +1434,7 @@ function renderCard() {
         '<div class="face front">' +
           '<span class="lang-tag">Französisch</span>' +
           '<span class="word" lang="fr">' + esc(w.fr) + '</span>' +
-          (ttsOk() ? '<span class="spk" id="c-spk" role="button" aria-label="Nochmals anhören">' + IC.speaker + '</span>' : '') +
+          (canHear(w) ? '<span class="spk" id="c-spk" role="button" tabindex="0" aria-label="Nochmals anhören">' + IC.speaker + '</span>' : '') +
         '</div>' +
         '<div class="face back">' +
           '<span class="lang-tag">Deutsch</span>' +
@@ -1378,7 +1467,12 @@ function renderCard() {
   });
   fc.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
   const spk = $('#c-spk');
-  if (spk) spk.addEventListener('click', (e) => { e.stopPropagation(); speakWithPulse(w.tts, spk); });
+  if (spk) {
+    spk.addEventListener('click', (e) => { e.stopPropagation(); speakWithPulse(w, spk); });
+    spk.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); speakWithPulse(w, spk); }
+    });
+  }
   $('#c-back').addEventListener('click', goBack);
   $('#c-undo').addEventListener('click', undoCard);
   $('#c-again').addEventListener('click', () => rateCard(false));
@@ -1396,7 +1490,7 @@ function renderCard() {
   });
 
   // Französisch automatisch vorlesen (nach erster Berührung freigeschaltet)
-  if (TTS.unlocked) speakWithPulse(w.tts, spk);
+  if (TTS.unlocked) speakWithPulse(w, spk);
 }
 
 function rateCard(known) {
@@ -1477,7 +1571,7 @@ function praise() {
 function pickQType(w) {
   const s = state.words[w.id];
   const box = s ? s.box : 0;
-  const listen = ttsOk();
+  const listen = canHear(w);
   let pool;
   if (w.cat === 'satz') {
     pool = listen ? ['listenDE', 'mcFRDE'] : ['mcFRDE'];
@@ -1549,6 +1643,7 @@ function startQuiz(mode, uk) {
   }
   if (!words.length) { history.back(); return; }
 
+  if (quiz && quiz.timer) clearTimeout(quiz.timer);
   quiz = {
     mode, uk,
     queue: words.map((w, i) => ({ w, type: pickQType(w), seg: i, retry: false })),
@@ -1574,10 +1669,16 @@ function renderQuestion() {
   const q = quiz.queue[quiz.idx];
   const w = q.w;
   quiz.locked = false;
+  quiz.timer = null;
+  quiz.shownAt = Date.now();
+  // Hör-Frage, aber Audio inzwischen nicht (mehr) verfügbar → gleiche Seite als Lese-Frage
+  if (q.type.startsWith('listen') && !canHear(w)) {
+    q.type = q.type === 'listenDE' ? 'mcFRDE' : 'mcDEFR';
+  }
 
   let promptHtml = '';
   let answersHtml = '';
-  const spkBtn = (id, big) => ttsOk()
+  const spkBtn = (id, big) => canHear(w)
     ? '<span class="spk' + (big ? ' bigspk' : '') + '" id="' + id + '" role="button" tabindex="0" aria-label="Anhören">' + IC.speaker + '</span>'
     : (big ? '<span class="spk bigspk off" aria-hidden="true">' + IC.speaker + '</span>' : '');
 
@@ -1636,10 +1737,10 @@ function renderQuestion() {
   $('#q-x').addEventListener('click', goBack);
   const spk = $('#q-spk');
   if (spk) {
-    spk.addEventListener('click', () => speakWithPulse(w.tts, spk));
-    spk.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); speakWithPulse(w.tts, spk); } });
+    spk.addEventListener('click', () => speakWithPulse(w, spk));
+    spk.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); speakWithPulse(w, spk); } });
   }
-  if (q.type.startsWith('listen') && TTS.unlocked) speakWithPulse(w.tts, spk);
+  if (q.type.startsWith('listen') && TTS.unlocked) speakWithPulse(w, spk);
 
   const ansWrap = $('#q-answers');
   if (ansWrap) {
@@ -1698,6 +1799,7 @@ function refreshSegbar() {
 
 function answerMC(q, btn) {
   if (quiz.locked) return;
+  if (Date.now() - (quiz.shownAt || 0) < 300) return;   // Doppel-Tipp vom «Weiter» abfangen
   quiz.locked = true;
   const wrap = $('#q-answers');
   wrap.classList.add('locked');
@@ -1707,7 +1809,7 @@ function answerMC(q, btn) {
     btn.classList.add('right');
     SFX.good();
     showToast(praise());
-    setTimeout(nextQuestion, 650);
+    quiz.timer = setTimeout(nextQuestion, 650);
   } else {
     btn.classList.add('wrong');
     SFX.bad();
@@ -1718,6 +1820,7 @@ function answerMC(q, btn) {
 
 function answerTyped(q, valueOrNull) {
   if (quiz.locked) return;
+  if (Date.now() - (quiz.shownAt || 0) < 300) return;       // Doppel-Tipp vom «Weiter» abfangen
   if (valueOrNull !== null && !norm(valueOrNull)) return;   // leeres Feld: nichts tun
   quiz.locked = true;
   const lang = q.type === 'typeFR' ? 'fr' : 'de';
@@ -1732,7 +1835,7 @@ function answerTyped(q, valueOrNull) {
   if (res.v === 'right') {
     SFX.good();
     showToast(praise());
-    setTimeout(nextQuestion, 650);
+    quiz.timer = setTimeout(nextQuestion, 650);
   } else if (res.v === 'almost') {
     SFX.good();
     showFeedback('almost', 'Fast perfekt!', esc(res.note), null);
@@ -1747,6 +1850,7 @@ function fbPair(w) {
 }
 
 function nextQuestion() {
+  if (!quiz || screenNow.s !== 'quiz') return;   // Quiz wurde inzwischen verlassen
   quiz.idx++;
   renderQuestion();
 }
@@ -1754,8 +1858,14 @@ function nextQuestion() {
 /* ---------- Feedback-Leiste & Toast ---------- */
 
 function showFeedback(kind, title, bodyHtml, note) {
+  // Tastatur schliessen, sonst verdeckt sie die Leiste (iOS/Android)
+  const ae = document.activeElement;
+  if (ae && ae.tagName === 'INPUT') ae.blur();
+  const q = quiz && quiz.queue[quiz.idx];
   const fb = $('#fb');
-  const spk = ttsOk() ? '<span class="spk" id="fb-spk" role="button" tabindex="0" aria-label="Anhören">' + IC.speaker + '</span>' : '';
+  const spk = (q && canHear(q.w))
+    ? '<span class="spk" id="fb-spk" role="button" tabindex="0" aria-label="Anhören">' + IC.speaker + '</span>'
+    : '';
   fb.className = 'fb show ' + kind;
   fb.innerHTML =
     '<div class="fb-in">' +
@@ -1764,11 +1874,13 @@ function showFeedback(kind, title, bodyHtml, note) {
       (note ? '<p class="fb-body">' + note + '</p>' : '') +
       '<button class="btn primary" id="fb-next">Weiter</button>' +
     '</div>';
-  const q = quiz && quiz.queue[quiz.idx];
   const fspk = $('#fb-spk');
   if (fspk && q) {
-    fspk.addEventListener('click', () => speakWithPulse(q.w.tts, fspk));
-    if (TTS.unlocked) speakWithPulse(q.w.tts, fspk);
+    fspk.addEventListener('click', () => speakWithPulse(q.w, fspk));
+    fspk.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); speakWithPulse(q.w, fspk); }
+    });
+    if (TTS.unlocked) speakWithPulse(q.w, fspk);
   }
   $('#fb-next').addEventListener('click', () => { hideFeedback(); nextQuestion(); });
 }
@@ -1783,6 +1895,9 @@ function showToast(text) {
   t.classList.remove('show');
   void t.offsetWidth;
   t.classList.add('show');
+  // bei reduzierter Bewegung läuft keine Animation → Klasse zeitgesteuert entfernen
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove('show'), 850);
 }
 
 /* ---------- Rundenende ---------- */
@@ -1820,7 +1935,7 @@ function renderQuizEnd() {
             '<span class="w-fr" lang="fr" style="display:block">' + esc(w.fr) + '</span>' +
             '<span class="w-de" style="display:block">' + esc(w.de) + '</span>' +
           '</span>' +
-          '<span class="spk' + (ttsOk() ? '' : ' off') + '" aria-hidden="true">' + IC.speaker + '</span>' +
+          '<span class="spk' + (canHear(w) ? '' : ' off') + '" aria-hidden="true">' + IC.speaker + '</span>' +
         '</button></li>').join('') +
       '</ul></div>';
   }
@@ -1850,7 +1965,7 @@ function renderQuizEnd() {
   $$('.recap .wrow', scr).forEach(b => {
     b.addEventListener('click', () => {
       const w = BY_ID[b.dataset.id];
-      if (w) speakWithPulse(w.tts, $('.spk', b));
+      if (w) speakWithPulse(w, $('.spk', b));
     });
   });
 
@@ -1884,11 +1999,16 @@ function openSettings() {
   renderSettings();
   $('#backdrop').classList.add('show');
   $('#sheet').classList.add('show');
+  // Marker-Eintrag, damit die System-Zurück-Geste das Blatt schliesst statt die App zu verlassen
+  history.pushState({ s: screenNow.s, u: screenNow.u, sheet: 1 }, '');
 }
-function closeSettings() {
+function hideSheet() {
   $('#backdrop').classList.remove('show');
   $('#sheet').classList.remove('show');
   if (screenNow.s === 'home') renderHome();
+}
+function closeSettings() {
+  history.back();   // popstate ruft hideSheet()
 }
 function renderSettings() {
   const sheet = $('#sheet');
@@ -1911,7 +2031,11 @@ function renderSettings() {
   sheet.innerHTML =
     '<div class="grab"></div>' +
     '<h3>Einstellungen</h3>' +
-    '<div class="set-group"><div class="g-lbl">Stimme</div>' + voicesHtml +
+    '<div class="set-group"><div class="g-lbl">Stimme</div>' +
+      (Object.keys(AUDIO).length
+        ? '<p class="set-note" style="margin:0 0 10px">Die Wörter haben eigene Aufnahmen einer französischen Stimme. Die Browser-Stimme unten wird nur als Ersatz benutzt.</p>'
+        : '') +
+      voicesHtml +
       '<p class="set-note">Kein Ton? Prüfe den Stummschalter und die Lautstärke deines Geräts.</p>' +
     '</div>' +
     '<div class="set-group"><div class="g-lbl">Töne</div>' +
@@ -1996,10 +2120,11 @@ history.replaceState({ s: 'home', u: null }, '');
 // kleine Test-Hilfe (bewusst zugänglich – die App ist privat)
 window.__nea = {
   vocab: VOCAB,
-  grade,
+  grade, ws, promote, demote, audioSlug, canHear, flushSave,
   get quiz() { return quiz; },
   get state() { return state; },
   get tts() { return TTS; },
+  get player() { return PLAYER; },
 };
 </script>
 </body>
