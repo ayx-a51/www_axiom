@@ -1,0 +1,2006 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#FBF6EE">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Französisch">
+<title>Französisch · Nea</title>
+<link rel="icon" href="apple-touch-icon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preload" href="manrope.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  @font-face {
+    font-family: "Manrope";
+    src: url("manrope.woff2") format("woff2");
+    font-weight: 200 800;
+    font-display: optional;
+  }
+  :root {
+    --bg: #FBF6EE;
+    --surface: #FFFFFF;
+    --ink: #423B33;
+    --muted: #93887A;
+    --line: #EDE4D7;
+    --primary: #EE6C4D;
+    --primary-press: #D95B3E;
+    --accent: #1F9E92;
+    --accent-soft: #E2F2F0;
+    --star: #F5B942;
+    --star-bg: #FDF3DC;
+    --ok: #3E9B63;
+    --ok-tint: #E7F4EB;
+    --warn: #C98A2B;
+    --warn-tint: #FBF1DD;
+    --err: #D95556;
+    --err-tint: #FBECEA;
+    --flame: #F58A3C;
+    --shadow: 0 6px 20px -8px rgba(88, 57, 24, 0.18);
+    --shadow-lg: 0 14px 34px -12px rgba(88, 57, 24, 0.24);
+    --r-card: 16px;
+    --r-btn: 14px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { height: 100%; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 1.45;
+    overscroll-behavior-y: contain;
+  }
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  #app {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 18px calc(24px + env(safe-area-inset-bottom, 0px));
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  .screen { display: none; flex: 1; flex-direction: column; animation: slidein 0.2s ease-out; }
+  .screen.active { display: flex; }
+  @keyframes slidein {
+    from { opacity: 0; transform: translateX(14px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .screen.back-anim { animation: slideback 0.2s ease-out; }
+  @keyframes slideback {
+    from { opacity: 0; transform: translateX(-14px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ---------- generic bits ---------- */
+  .iconbtn {
+    width: 44px; height: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 12px;
+    color: var(--muted);
+    transition: transform 0.08s ease, background 0.15s ease;
+  }
+  .iconbtn:active { transform: scale(0.94); background: rgba(0,0,0,0.05); }
+  .iconbtn svg { width: 26px; height: 26px; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: var(--r-btn);
+    font-weight: 700;
+    font-size: 17px;
+    min-height: 52px;
+    padding: 10px 22px;
+    transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+  }
+  .btn:active { transform: translateY(1px) scale(0.98); }
+  .btn.primary { background: var(--primary); color: #fff; box-shadow: var(--shadow); }
+  .btn.primary:active { background: var(--primary-press); }
+  .btn.ghost { background: transparent; color: var(--primary); border: 2px solid var(--line); }
+  .btn.soft { background: var(--surface); color: var(--ink); border: 1.5px solid var(--line); box-shadow: var(--shadow); }
+  .btn.okfill { background: var(--ok); color: #fff; box-shadow: var(--shadow); }
+  .btn.big { min-height: 56px; font-size: 18px; }
+  .btn:disabled { opacity: 0.45; pointer-events: none; }
+
+  .card {
+    background: var(--surface);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow);
+    padding: 16px;
+  }
+
+  .screen-head {
+    display: flex; align-items: center; gap: 6px;
+    padding: 2px 0 10px;
+    position: sticky; top: 0; z-index: 5;
+    background: linear-gradient(var(--bg) 82%, transparent);
+    margin: 0 -4px; padding-left: 4px; padding-right: 4px;
+  }
+  .screen-head .titles { flex: 1; min-width: 0; }
+  .screen-head h2 { margin: 0; font-size: 24px; font-weight: 800; line-height: 1.15; }
+  .screen-head .sub { margin: 1px 0 0; font-size: 13px; color: var(--muted); }
+
+  /* ---------- home ---------- */
+  .home-head { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0 16px; }
+  .home-head .hello { flex: 1; }
+  .home-head h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.01em; }
+  .home-head .sub { margin: 2px 0 0; font-size: 15px; color: var(--muted); }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--surface); border: 1.5px solid var(--line);
+    border-radius: 999px; padding: 7px 13px;
+    font-size: 14px; font-weight: 700; color: var(--ink);
+    box-shadow: var(--shadow);
+    white-space: nowrap;
+  }
+  .chip svg { width: 17px; height: 17px; }
+  .chip .flame { color: var(--flame); }
+  .chip.done { color: var(--ok); border-color: var(--ok-tint); }
+  .chip .bump { display: inline-block; animation: bump 0.5s ease-out; }
+  @keyframes bump { 0% {transform: scale(1);} 40% {transform: scale(1.35);} 100% {transform: scale(1);} }
+
+  .train-card {
+    background: linear-gradient(135deg, #FDE8DE, #FBDCCE);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow);
+    padding: 18px;
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 14px;
+  }
+  .train-card .t-info { flex: 1; min-width: 0; }
+  .train-card h2 { margin: 0 0 2px; font-size: 20px; font-weight: 800; }
+  .train-card p { margin: 0; font-size: 14px; color: #8A5B44; font-weight: 600; }
+  .train-card .btn { flex-shrink: 0; min-width: 96px; }
+
+  .weakbtn { width: 100%; margin-bottom: 14px; }
+
+  .notice {
+    background: var(--warn-tint);
+    border-radius: var(--r-card);
+    padding: 13px 15px;
+    font-size: 14px; color: #7A5A1E;
+    display: flex; gap: 10px; align-items: flex-start;
+    margin-bottom: 14px;
+  }
+  .notice button { font-weight: 800; color: #7A5A1E; padding: 2px 6px; margin-left: auto; flex-shrink: 0; }
+
+  .unit-list { display: flex; flex-direction: column; gap: 12px; }
+  .unit-card {
+    width: 100%;
+    display: flex; align-items: center; gap: 14px;
+    text-align: left;
+    background: var(--surface);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow);
+    padding: 14px 16px;
+    transition: transform 0.08s ease;
+  }
+  .unit-card:active { transform: translateY(1px) scale(0.99); }
+  .glyph {
+    width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .glyph svg { width: 28px; height: 28px; }
+  .unit-card .u-info { flex: 1; min-width: 0; }
+  .unit-card .u-name { font-size: 17px; font-weight: 700; }
+  .unit-card .u-sub { font-size: 13px; color: var(--muted); }
+  .unit-card .u-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .stars { display: inline-flex; gap: 2px; flex-shrink: 0; }
+  .stars span { display: inline-flex; color: var(--star); }
+  .stars span.off { color: var(--line); }
+  .stars svg { width: 20px; height: 20px; }
+  .home-foot { display: flex; justify-content: flex-end; padding-top: 18px; margin-top: auto; }
+
+  /* ---------- unit screen ---------- */
+  .unit-hero { text-align: center; padding: 10px 0 20px; }
+  .unit-hero .glyph { width: 68px; height: 68px; margin: 0 auto 10px; border-radius: 20px; }
+  .unit-hero .glyph svg { width: 36px; height: 36px; }
+  .unit-hero h2 { margin: 0; font-size: 26px; font-weight: 800; }
+  .unit-hero .sub { margin: 2px 0 10px; font-size: 14px; color: var(--muted); }
+  .unit-hero .stars svg { width: 28px; height: 28px; }
+  .unit-hero .starhint { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+  .modes { display: flex; flex-direction: column; gap: 12px; }
+  .mode-btn {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--surface); border-radius: var(--r-card);
+    box-shadow: var(--shadow); padding: 0 18px; min-height: 64px;
+    font-size: 17px; font-weight: 700; text-align: left;
+    transition: transform 0.08s ease;
+  }
+  .mode-btn:active { transform: translateY(1px) scale(0.99); }
+  .mode-btn .m-ic {
+    width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-soft); color: var(--accent);
+  }
+  .mode-btn .m-ic svg { width: 22px; height: 22px; }
+  .prog-line { margin-top: 20px; }
+  .prog-line .lbl { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+  .bar { height: 7px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .bar > i { display: block; height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.4s ease; }
+
+  /* ---------- listen ---------- */
+  .wlist { list-style: none; margin: 0; padding: 0 0 10px; display: flex; flex-direction: column; gap: 9px; }
+  .wrow {
+    width: 100%;
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface); border-radius: var(--r-card);
+    box-shadow: var(--shadow); padding: 11px 8px 11px 16px;
+    text-align: left;
+    min-height: 64px;
+    transition: background 0.3s ease, transform 0.08s ease;
+  }
+  .wrow:active { transform: scale(0.995); }
+  .wrow.speaking { background: var(--accent-soft); }
+  .wrow .w-main { flex: 1; min-width: 0; }
+  .wrow .w-fr { font-size: 18px; font-weight: 700; }
+  .wrow .w-de { font-size: 14px; color: var(--muted); }
+  .wrow .dots { display: flex; gap: 3px; margin-right: 2px; flex-shrink: 0; }
+  .wrow .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
+  .wrow .dots i.on { background: var(--accent); }
+  .spk {
+    width: 48px; height: 48px; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--accent); border-radius: 50%;
+    position: relative;
+  }
+  .spk svg { width: 25px; height: 25px; }
+  .spk.speaking::before, .spk.speaking::after {
+    content: ""; position: absolute; inset: 4px; border-radius: 50%;
+    border: 2px solid var(--accent); opacity: 0;
+    animation: ring 1.4s ease-out infinite;
+  }
+  .spk.speaking::after { animation-delay: 0.5s; }
+  @keyframes ring {
+    0% { transform: scale(0.6); opacity: 0.7; }
+    100% { transform: scale(1.25); opacity: 0; }
+  }
+  .spk.off { color: var(--line); }
+
+  /* ---------- flashcards ---------- */
+  .cards-top { display: flex; align-items: center; padding-bottom: 4px; }
+  .cards-top .count { flex: 1; text-align: center; font-weight: 800; font-size: 17px; color: var(--muted); }
+  .cards-top .undo { font-size: 14px; font-weight: 700; color: var(--muted); padding: 10px 12px; visibility: hidden; }
+  .cards-top .undo.show { visibility: visible; }
+  .card-stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; perspective: 1100px; padding: 8px 0; }
+  .fcard {
+    width: min(86vw, 480px);
+    min-height: 300px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.3, 1.1);
+    cursor: pointer;
+  }
+  .fcard.flipped { transform: rotateY(180deg); }
+  .fcard .face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    background: var(--surface);
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; padding: 26px 20px;
+    border-top: 6px solid var(--tint, var(--accent));
+    text-align: center;
+    overflow: hidden;
+  }
+  .fcard .face.back { transform: rotateY(180deg); background: #F4FAF9; }
+  .fcard .word { font-size: clamp(24px, 7.5vw, 38px); font-weight: 800; line-height: 1.25; overflow-wrap: break-word; max-width: 100%; }
+  .fcard .face .lang-tag { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .fcard .spk { width: 54px; height: 54px; background: var(--accent-soft); }
+  .card-hint { text-align: center; font-size: 13px; color: var(--muted); min-height: 20px; margin: 8px 0 0; }
+  .card-actions {
+    display: flex; gap: 12px; padding-top: 14px;
+    visibility: hidden;
+  }
+  .card-actions.show { visibility: visible; animation: rise 0.22s ease-out; }
+  @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .card-actions .btn { flex: 1; min-height: 58px; }
+  .card-actions .again { border: 2px solid #F3C4B5; color: var(--primary); background: var(--surface); }
+
+  /* ---------- quiz ---------- */
+  .quiz-top { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; }
+  .segbar { flex: 1; display: flex; gap: 5px; }
+  .segbar i { flex: 1; height: 7px; border-radius: 4px; background: var(--line); transition: background 0.3s ease; }
+  .segbar i.ok { background: var(--ok); }
+  .segbar i.retry { background: var(--warn); }
+  .q-area { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .q-prompt {
+    background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow);
+    padding: 22px 18px; text-align: center; margin-bottom: 16px;
+  }
+  .q-prompt .cap { font-size: 13px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .q-prompt .big { font-size: clamp(21px, 6.5vw, 30px); font-weight: 800; line-height: 1.3; }
+  .q-prompt .spk { background: var(--accent-soft); margin-top: 8px; }
+  .q-prompt .bigspk { width: 96px; height: 96px; border-radius: 50%; background: var(--primary); color: #fff; margin: 10px auto 4px; box-shadow: var(--shadow-lg); }
+  .q-prompt .bigspk svg { width: 44px; height: 44px; }
+  .q-prompt .bigspk.speaking::before, .q-prompt .bigspk.speaking::after { border-color: var(--primary); inset: -7px; }
+  .q-answers { margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding-top: 10px; }
+  .q-answers.type-wrap { margin-top: 12px; }   /* Tipp-Feld oben, die Tastatur deckt sonst alles ab */
+  .ans {
+    background: var(--surface); border: 2px solid var(--line); border-radius: var(--r-btn);
+    min-height: 56px; padding: 12px 16px;
+    font-size: 17px; font-weight: 700; text-align: center;
+    transition: transform 0.08s ease, background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+    overflow-wrap: break-word;
+  }
+  .ans:active { transform: scale(0.985); }
+  .ans.right { background: var(--ok); border-color: var(--ok); color: #fff; animation: pulse1 0.35s ease; }
+  .ans.wrong { background: var(--err-tint); border-color: var(--err); color: var(--err); animation: wiggle 0.25s ease; }
+  .ans.reveal { border-color: var(--ok); color: var(--ok); }
+  .q-answers.locked .ans { pointer-events: none; }
+  @keyframes pulse1 { 0% { transform: scale(1); } 40% { transform: scale(1.04); } 100% { transform: scale(1); } }
+  @keyframes wiggle {
+    0%,100% { transform: translateX(0); }
+    30% { transform: translateX(-3px); }
+    65% { transform: translateX(2px); }
+  }
+
+  .type-wrap { display: flex; flex-direction: column; gap: 10px; }
+  .type-input {
+    width: 100%;
+    font: inherit; font-size: 20px; font-weight: 700;
+    padding: 14px 16px;
+    border: 2px solid var(--line); border-radius: var(--r-btn);
+    background: var(--surface); color: var(--ink);
+    text-align: center;
+  }
+  .type-input:focus { border-color: var(--accent); outline: none; }
+  .accents { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
+  .accents button {
+    min-width: 44px; height: 44px;
+    background: var(--surface); border: 1.5px solid var(--line); border-radius: 11px;
+    font-size: 19px; font-weight: 700;
+    transition: transform 0.08s ease;
+  }
+  .accents button:active { transform: scale(0.92); background: var(--accent-soft); }
+  .type-btns { display: flex; gap: 10px; align-items: center; }
+  .type-btns .btn { flex: 1; }
+  .dontknow { font-size: 14px; font-weight: 700; color: var(--muted); padding: 12px; text-align: center; }
+
+  .fb {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: none;
+    justify-content: center;
+  }
+  .fb.show { display: flex; }
+  .fb .fb-in {
+    width: 100%; max-width: 560px;
+    margin: 0 auto;
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -10px 34px -10px rgba(88, 57, 24, 0.3);
+    padding: 18px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+    animation: rise 0.22s ease-out;
+  }
+  .fb.good .fb-in { background: var(--ok-tint); }
+  .fb.almost .fb-in { background: var(--warn-tint); }
+  .fb.bad .fb-in { background: var(--err-tint); }
+  .fb h3 { margin: 0 0 4px; font-size: 18px; font-weight: 800; }
+  .fb.good h3 { color: var(--ok); }
+  .fb.almost h3 { color: var(--warn); }
+  .fb.bad h3 { color: #B4452F; }
+  .fb .fb-body { font-size: 16px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .fb .fb-body .spk { width: 40px; height: 40px; }
+  .fb .btn { width: 100%; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    background: var(--ok); color: #fff;
+    font-weight: 800; font-size: 17px;
+    border-radius: 999px; padding: 9px 22px;
+    box-shadow: var(--shadow-lg);
+    z-index: 50; pointer-events: none;
+    opacity: 0;
+  }
+  .toast.show { animation: toast 0.75s ease; }
+  @keyframes toast {
+    0% { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.9); }
+    20% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.02); }
+    80% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+  }
+
+  /* ---------- end screen ---------- */
+  .end-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; padding: 10px 0; }
+  .end-wrap h2 { margin: 0; font-size: 32px; font-weight: 800; }
+  .end-stars { display: flex; gap: 8px; margin: 8px 0 4px; }
+  .end-stars span { display: inline-flex; color: var(--line); }
+  .end-stars svg { width: 44px; height: 44px; }
+  .end-stars span.on { color: var(--star); animation: starpop 0.4s cubic-bezier(0.2, 0.7, 0.3, 1.4) backwards; }
+  .end-stars span.on:nth-child(2) { animation-delay: 0.12s; }
+  .end-stars span.on:nth-child(3) { animation-delay: 0.24s; }
+  @keyframes starpop { from { transform: scale(0); } 70% { transform: scale(1.18); } to { transform: scale(1); } }
+  .end-stat { font-size: 16px; color: var(--muted); font-weight: 600; margin: 2px 0 0; }
+  .end-streak { font-size: 16px; font-weight: 800; color: var(--flame); margin: 4px 0 0; }
+  .recap { width: 100%; margin-top: 16px; text-align: left; }
+  .recap h4 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 0 0 8px; }
+  .recap .wlist { gap: 7px; }
+  .recap .wrow { min-height: 56px; box-shadow: none; border: 1.5px solid var(--line); }
+  .end-btns { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+
+  /* ---------- settings sheet ---------- */
+  .backdrop {
+    position: fixed; inset: 0; z-index: 60;
+    background: rgba(66, 59, 51, 0.35);
+    display: none;
+  }
+  .backdrop.show { display: block; animation: fadein 0.2s ease; }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 61;
+    max-width: 560px; margin: 0 auto;
+    background: var(--bg);
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -12px 40px -8px rgba(66, 59, 51, 0.4);
+    padding: 10px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    max-height: 86vh; max-height: 86dvh;
+    overflow-y: auto;
+    display: none;
+  }
+  .sheet.show { display: block; animation: sheetup 0.25s ease-out; }
+  @keyframes sheetup { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: 4px auto 12px; }
+  .sheet h3 { margin: 0 0 14px; font-size: 20px; font-weight: 800; }
+  .set-group { margin-bottom: 20px; }
+  .set-group > .g-lbl { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 8px; }
+  .voice-row {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface); border: 2px solid var(--line); border-radius: var(--r-btn);
+    padding: 10px 12px; margin-bottom: 8px;
+    width: 100%; text-align: left;
+  }
+  .voice-row.sel { border-color: var(--accent); }
+  .voice-row .v-name { flex: 1; min-width: 0; }
+  .voice-row .v-name b { display: block; font-size: 15px; }
+  .voice-row .v-name span { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+  .voice-row .test { font-weight: 700; font-size: 14px; color: var(--accent); padding: 10px 12px; flex-shrink: 0; }
+  .voice-row .dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line); flex-shrink: 0; }
+  .voice-row.sel .dot { border-color: var(--accent); background: radial-gradient(var(--accent) 45%, transparent 50%); }
+  .set-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--surface); border-radius: var(--r-btn); padding: 13px 15px;
+    font-weight: 700; font-size: 16px;
+    border: 1.5px solid var(--line);
+  }
+  .switch { position: relative; width: 52px; height: 31px; border-radius: 16px; background: var(--line); transition: background 0.2s ease; flex-shrink: 0; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 25px; height: 25px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25); transition: left 0.2s ease; }
+  .switch.on { background: var(--ok); }
+  .switch.on::after { left: 24px; }
+  .swatches { display: flex; gap: 12px; }
+  .swatch { width: 44px; height: 44px; border-radius: 50%; border: 3px solid transparent; transition: transform 0.1s ease; }
+  .swatch:active { transform: scale(0.92); }
+  .swatch.sel { border-color: var(--ink); }
+  .set-note { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 8px 0 0; }
+  .danger { color: var(--err); font-weight: 700; }
+  .confirm-row { display: flex; gap: 10px; margin-top: 10px; }
+  .confirm-row .btn { flex: 1; min-height: 46px; font-size: 15px; }
+  .btn.dangerfill { background: var(--err); color: #fff; }
+
+  #confetti { position: fixed; inset: 0; z-index: 100; pointer-events: none; }
+
+  @media (min-width: 561px) {
+    body { padding-top: 12px; }
+    .sheet, .fb .fb-in { border-radius: 22px; bottom: 12px; left: 12px; right: 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    .fcard { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <section class="screen" id="scr-home"></section>
+  <section class="screen" id="scr-unit"></section>
+  <section class="screen" id="scr-listen"></section>
+  <section class="screen" id="scr-cards"></section>
+  <section class="screen" id="scr-quiz"></section>
+</div>
+<div class="fb" id="fb"></div>
+<div class="toast" id="toast"></div>
+<div class="backdrop" id="backdrop"></div>
+<div class="sheet" id="sheet" role="dialog" aria-label="Einstellungen"></div>
+
+<script>
+'use strict';
+
+/* =====================================================================
+   VOKABULAR
+   Hier neue Wörter oder ganze Lernziele ergänzen.
+   Felder pro Wort:
+     u        Lernziel-Kürzel (muss in UNITS existieren)
+     cat      'satz' | 'ding' | 'fach' | 'tag' | 'verb'  (für Quiz-Auswahl)
+     fr       Französisch, exakt wie im Buch (wird angezeigt)
+     de       Deutsch, exakt wie im Buch
+     frForms  optional: akzeptierte Tipp-Varianten, z.B. ['les maths','les mathématiques']
+   Wichtig: 'fr' ist der Schlüssel für Neas Fortschritt — bestehende
+   Einträge möglichst nicht umformulieren, sonst beginnt das Wort bei null.
+   ===================================================================== */
+
+const UNITS = {
+  '1': { name: 'Lernziel 1', sub: 'Schulanfang',               tint: '#FFE3D3', deep: '#B84A2B' },
+  'S': { name: 'Lernziel S', sub: 'Schulsachen',               tint: '#DCF0E6', deep: '#23795B' },
+  '2': { name: 'Lernziel 2', sub: 'Schulfächer & Wochentage',  tint: '#E3E8FA', deep: '#4353A8' },
+  '3': { name: 'Lernziel 3', sub: 'Schule & Aktivitäten',      tint: '#FAE3EE', deep: '#A93E72' },
+};
+const UNIT_ORDER = ['1', 'S', '2', '3'];
+
+const VOCAB = [
+  // ── Lernziel 1 · Schulanfang ──────────────────────────────
+  { u: '1', cat: 'satz', fr: 'Chouette, c’est la rentrée!', de: 'Toll, es ist Schulanfang!' },
+  { u: '1', cat: 'satz', fr: 'Zut, c’est la rentrée!',      de: 'Oje, es ist Schulanfang!' },
+  // ── Lernziel S · Schulsachen ──────────────────────────────
+  { u: 'S', cat: 'ding', fr: 'le livre',        de: 'das Buch' },
+  { u: 'S', cat: 'ding', fr: 'la règle',        de: 'das Lineal' },
+  { u: 'S', cat: 'ding', fr: 'le classeur',     de: 'der Ordner' },
+  { u: 'S', cat: 'ding', fr: 'le cahier',       de: 'das Heft' },
+  { u: 'S', cat: 'ding', fr: 'le crayon',       de: 'der Bleistift' },
+  { u: 'S', cat: 'ding', fr: 'le stylo',        de: 'der Kugelschreiber' },
+  { u: 'S', cat: 'ding', fr: 'la gomme',        de: 'der Gummi' },
+  { u: 'S', cat: 'ding', fr: 'le tableau noir', de: 'die Wandtafel' },
+  { u: 'S', cat: 'ding', fr: 'la trousse',      de: 'das Etui' },
+  { u: 'S', cat: 'ding', fr: 'la table',        de: 'der Tisch' },
+  { u: 'S', cat: 'ding', fr: 'la chaise',       de: 'der Stuhl' },
+  // ── Lernziel 2 · Schulfächer & Wochentage ─────────────────
+  { u: '2', cat: 'fach', fr: 'la matière scolaire', de: 'das Schulfach' },
+  { u: '2', cat: 'fach', fr: 'l’allemand (m)',      de: 'Deutsch' },
+  { u: '2', cat: 'fach', fr: 'le français',         de: 'Französisch' },
+  { u: '2', cat: 'fach', fr: 'l’anglais (m)',       de: 'Englisch' },
+  { u: '2', cat: 'fach', fr: 'les maths, les mathématiques (f pl)', de: 'Mathematik',
+    frForms: ['les maths', 'les mathématiques'] },
+  { u: '2', cat: 'tag',  fr: 'les jours (m) de la semaine', de: 'die Wochentage' },
+  { u: '2', cat: 'tag',  fr: 'lundi',    de: 'Montag' },
+  { u: '2', cat: 'tag',  fr: 'mardi',    de: 'Dienstag' },
+  { u: '2', cat: 'tag',  fr: 'mercredi', de: 'Mittwoch' },
+  { u: '2', cat: 'tag',  fr: 'jeudi',    de: 'Donnerstag' },
+  { u: '2', cat: 'tag',  fr: 'vendredi', de: 'Freitag' },
+  { u: '2', cat: 'tag',  fr: 'samedi',   de: 'Samstag' },
+  { u: '2', cat: 'tag',  fr: 'dimanche', de: 'Sonntag' },
+  // ── Lernziel 3 · Schule & Aktivitäten ─────────────────────
+  { u: '3', cat: 'ding', fr: 'une école',       de: 'eine Schule' },
+  { u: '3', cat: 'verb', fr: 'calculer',        de: 'rechnen' },
+  { u: '3', cat: 'verb', fr: 'dessiner',        de: 'zeichnen' },
+  { u: '3', cat: 'verb', fr: 'chanter',         de: 'singen' },
+  { u: '3', cat: 'verb', fr: 'expérimenter',    de: 'experimentieren' },
+  { u: '3', cat: 'verb', fr: 'parler français', de: 'Französisch sprechen' },
+];
+
+/* ================= Utilities ================= */
+
+const $ = (sel, root) => (root || document).querySelector(sel);
+const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function fmtDate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function todayStr() { return fmtDate(new Date()); }
+function addDaysStr(days) { return fmtDate(new Date(Date.now() + days * 864e5)); }
+function dayDiff(fromStr, toStr) {
+  // whole local days between two YYYY-MM-DD strings
+  const [fy, fm, fd] = fromStr.split('-').map(Number);
+  const [ty, tm, td] = toStr.split('-').map(Number);
+  return Math.round((new Date(ty, tm - 1, td) - new Date(fy, fm - 1, fd)) / 864e5);
+}
+function shuffle(a) {
+  const r = a.slice();
+  for (let i = r.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [r[i], r[j]] = [r[j], r[i]];
+  }
+  return r;
+}
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+
+/* ================= Wort-Aufbereitung ================= */
+
+// Anzeige-Klammern wie "(m)" / "(f pl)" entfernen (für Vorlesen + Tippen)
+function stripParens(s) { return s.replace(/\s*\([^)]*\)/g, '').replace(/\s+/g, ' ').trim(); }
+
+for (const w of VOCAB) {
+  w.id = w.fr;                      // stabiler Schlüssel für den Fortschritt
+  w.tts = stripParens(w.fr);        // was die französische Stimme spricht
+  w.forms = (w.frForms && w.frForms.slice()) || [stripParens(w.fr)];
+  w.frMain = w.forms[0];            // Hauptform für Quiz-Antwortknöpfe
+}
+const BY_ID = Object.fromEntries(VOCAB.map(w => [w.id, w]));
+const UNIT_WORDS = {};
+for (const u of UNIT_ORDER) UNIT_WORDS[u] = VOCAB.filter(w => w.u === u);
+
+/* ================= Antwort-Bewertung =================
+   Stufen: 'right' (richtig) · 'almost' (fast richtig: zählt als richtig,
+   Kästchen bewegt sich nicht, Hinweis wird gezeigt) · 'wrong'          */
+
+function norm(s) {
+  return String(s).normalize('NFC').toLowerCase()
+    .replace(/[’ʼ`´]/g, "'")
+    .replace(/\s*\([^)]*\)/g, ' ')
+    .replace(/[.,!?;:«»""_]/g, ' ')
+    .replace(/ß/g, 'ss')
+    .replace(/\s+/g, ' ').trim();
+}
+function deAccent(s) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/œ/g, 'oe').replace(/æ/g, 'ae');
+}
+function deUmlautDigraph(s) {
+  return s.replace(/ö/g, 'oe').replace(/ä/g, 'ae').replace(/ü/g, 'ue');
+}
+function fold(s) { return deAccent(deUmlautDigraph(norm(s))); }
+function squash(s) { return fold(s).replace(/[' ]/g, ''); }
+
+const FR_ART = /^(le |la |les |l'|un |une )/;
+const DE_ART = /^(der |die |das |ein |eine )/;
+function stripArt(s, lang) { return s.replace(lang === 'fr' ? FR_ART : DE_ART, ''); }
+function hasArt(s, lang) { return (lang === 'fr' ? FR_ART : DE_ART).test(s); }
+
+// Damerau-Levenshtein (OSA), früher Abbruch bei > 1
+function editDist1(a, b) {
+  if (a === b) return 0;
+  if (Math.abs(a.length - b.length) > 1) return 2;
+  const la = a.length, lb = b.length;
+  const d = [];
+  for (let i = 0; i <= la; i++) { d[i] = [i]; }
+  for (let j = 0; j <= lb; j++) { d[0][j] = j; }
+  for (let i = 1; i <= la; i++) {
+    for (let j = 1; j <= lb; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+      }
+    }
+  }
+  return d[la][lb];
+}
+
+// Alle normalisierten Tipp-Ziele (für Kollisionsprüfung beim Tippfehler-Bonus)
+const ALL_TARGETS = { fr: new Set(), de: new Set() };
+for (const w of VOCAB) {
+  for (const f of w.forms) ALL_TARGETS.fr.add(fold(norm(f)));
+  ALL_TARGETS.de.add(fold(norm(w.de)));
+}
+
+function grade(userRaw, w, lang) {
+  const targets = lang === 'fr' ? w.forms : [w.de];
+  const display = lang === 'fr' ? w.frMain : w.de;
+  const u = norm(userRaw);
+  if (!u) return { v: 'wrong' };
+  const uf = fold(u);
+
+  for (const t0 of targets) {
+    const t = norm(t0);
+    if (u === t) return { v: 'right' };
+  }
+  // Deutsch ohne Buch-Artikel: freiwilliger (beliebiger) Artikel ist ok
+  if (lang === 'de' && !hasArt(norm(targets[0]), 'de')) {
+    for (const t0 of targets) {
+      if (stripArt(u, 'de') === norm(t0)) return { v: 'right' };
+    }
+  }
+  for (const t0 of targets) {
+    const t = norm(t0);
+    const tf = fold(t);
+    // nur Akzente/Umlaute falsch
+    if (uf === tf) return { v: 'almost', note: 'Achte auf die Akzente: ' + display };
+    // Artikel vergessen
+    if (hasArt(t, lang) && !hasArt(u, lang)) {
+      if (u === stripArt(t, lang) || uf === fold(stripArt(t, lang))) {
+        return { v: 'almost', note: 'Mit Artikel: ' + display };
+      }
+    }
+    // Elision/Leerzeichen (z.B. «lallemand» / «l allemand»)
+    if (squash(u) === squash(t)) return { v: 'almost', note: 'Genau hinschauen: ' + display };
+    // falscher Artikel → zählt als falsch, mit gezieltem Hinweis
+    if (hasArt(t, lang) && hasArt(u, lang) && stripArt(uf, lang) === stripArt(tf, lang)) {
+      return { v: 'wrong', note: 'Achtung, der Artikel: ' + display };
+    }
+    // kleiner Tippfehler (1 Buchstabe daneben) bei längeren Wörtern
+    if (tf.length >= 6 && !ALL_TARGETS[lang].has(uf) && editDist1(uf, tf) <= 1) {
+      return { v: 'almost', note: 'Kleiner Tippfehler! Richtig: ' + display };
+    }
+  }
+  return { v: 'wrong' };
+}
+
+/* ================= Speicher ================= */
+
+const KEY = 'axiom.french.v1';
+function freshState() {
+  return {
+    v: 1,
+    words: {},                                     // id → {box,due,seen,right,wrong,recent,lp,ld}
+    stars: {},                                     // unit → 0..3 (Bestwert, sinkt nie)
+    streak: { count: 0, last: '', rekord: 0 },
+    day: { date: '', rounds: 0, cards: 0 },
+    hints: {},                                     // einmalige Hinweise
+    settings: { sounds: true, accent: 'coral', voiceName: '', voiceLang: '' },
+  };
+}
+let state = loadState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return freshState();
+    const s = JSON.parse(raw);
+    if (!s || typeof s !== 'object' || typeof s.v !== 'number') return freshState();
+    if (s.v > 1) return freshState();       // unbekannte Zukunftsversion
+    const f = freshState();
+    return {
+      ...f, ...s,
+      words: s.words || {},
+      stars: s.stars || {},
+      streak: { ...f.streak, ...(s.streak || {}) },
+      day: { ...f.day, ...(s.day || {}) },
+      hints: s.hints || {},
+      settings: { ...f.settings, ...(s.settings || {}) },
+    };
+  } catch (e) {
+    return freshState();
+  }
+}
+let saveTimer = null;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushSave, 400);
+}
+function flushSave() {
+  clearTimeout(saveTimer);
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* privater Modus o.ä. */ }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushSave();
+});
+window.addEventListener('pagehide', flushSave);
+
+function ws(id) {
+  let s = state.words[id];
+  if (!s) {
+    s = { box: 0, due: todayStr(), seen: 0, right: 0, wrong: 0, recent: [], lp: '', ld: '' };
+    state.words[id] = s;
+  }
+  return s;
+}
+const INTERVALS = [0, 1, 3, 7, 21];   // Tage pro Kästchen 0..4
+
+function isDue(s) { return s.box === 0 || !s.due || s.due <= todayStr(); }
+function isLearned(s) { return s.box >= 3; }
+function isWeak(s) {
+  if (s.seen === 0 || s.wrong === 0 || s.box > 2) return false;
+  const r = s.recent;
+  if (r.length >= 2 && r[r.length - 1] && r[r.length - 2]) return false;  // 2× zuletzt richtig → raus
+  return r.includes(false);
+}
+function recordAttempt(id, ok) {
+  const s = ws(id);
+  s.seen++;
+  if (ok) s.right++; else s.wrong++;
+  s.recent.push(ok);
+  if (s.recent.length > 5) s.recent.shift();
+  save();
+}
+function promote(id) {
+  const s = ws(id);
+  const t = todayStr();
+  if (s.lp === t || s.box >= 4) return;      // max. 1 Aufstieg pro Tag
+  s.box++;
+  s.lp = t;
+  s.due = addDaysStr(INTERVALS[s.box]);
+  save();
+}
+function demote(id) {
+  const s = ws(id);
+  const t = todayStr();
+  if (s.ld === t) return;                    // max. 1 Abstieg pro Tag
+  s.box = Math.max(0, s.box - 1);
+  s.ld = t;
+  s.due = todayStr();
+  save();
+}
+
+/* ---------- Tag & Serie ---------- */
+
+function rollDay() {
+  const t = todayStr();
+  if (state.day.date !== t) {
+    state.day = { date: t, rounds: 0, cards: 0 };
+    save();
+  }
+}
+// Zählt heutige Aktivität; gibt {milestone} zurück, wenn die Serie gerade gewachsen ist
+function notePractice(kind) {
+  rollDay();
+  if (kind === 'round') state.day.rounds++;
+  if (kind === 'card') state.day.cards++;
+  let milestone = 0;
+  const goal = state.day.rounds >= 1 || state.day.cards >= 10;
+  if (goal) {
+    const t = todayStr();
+    const st = state.streak;
+    if (st.last !== t) {
+      const gap = st.last ? dayDiff(st.last, t) : Infinity;
+      st.count = gap <= 2 ? st.count + 1 : 1;   // 1 Pausentag wird überbrückt
+      st.last = t;
+      st.rekord = Math.max(st.rekord, st.count);
+      if ([3, 7, 14, 30, 50, 100].includes(st.count)) milestone = st.count;
+    }
+  }
+  save();
+  return { milestone };
+}
+function practicedToday() {
+  return state.streak.last === todayStr();
+}
+
+/* ================= Sprachausgabe (Web Speech API) ================= */
+
+const TTS = {
+  voices: [],
+  voice: null,
+  none: false,          // Liste geladen, aber keine französische Stimme
+  unlocked: false,
+  currentU: null,
+  onDone: null,
+};
+function scoreVoice(v) {
+  const lang = (v.lang || '').toLowerCase().replace('_', '-');
+  if (!/^fr(-|$)/.test(lang)) return -1;
+  let s = 0;
+  s += lang.startsWith('fr-fr') ? 100 : 50;
+  const n = (v.name || '').toLowerCase();
+  if (/natural|neural|premium|enhanced/.test(n)) s += 40;
+  if (/google fran/.test(n)) s += 30;
+  if (/thomas/.test(n)) s += 28;
+  if (/audrey|aur[eé]lie/.test(n)) s += 26;
+  if (/hortense|julie|denise|henri|eloise/.test(n)) s += 24;
+  if (/am[eé]lie|chantal|paul|caroline/.test(n)) s += 18;
+  if (/siri/.test(n)) s += 15;
+  if (v.localService) s += 5;
+  if (v.default) s += 2;
+  return s;
+}
+function refreshVoices() {
+  if (!('speechSynthesis' in window)) { TTS.none = true; return; }
+  const v = speechSynthesis.getVoices();
+  if (!v.length) return;
+  TTS.voices = v.filter(x => scoreVoice(x) >= 0).sort((a, b) => scoreVoice(b) - scoreVoice(a));
+  const pref = TTS.voices.find(x => x.name === state.settings.voiceName && x.lang === state.settings.voiceLang);
+  TTS.voice = pref || TTS.voices[0] || null;
+  const wasNone = TTS.none;
+  TTS.none = TTS.voices.length === 0;
+  if (wasNone !== TTS.none) {
+    setTimeout(() => { if (screenNow.s === 'home') renderHome(); }, 0);
+  }
+}
+if ('speechSynthesis' in window) {
+  refreshVoices();
+  if (typeof speechSynthesis.addEventListener === 'function') {
+    speechSynthesis.addEventListener('voiceschanged', refreshVoices);
+  }
+  let tries = 0;
+  const pollT = setInterval(() => {
+    refreshVoices();
+    if (TTS.voices.length || ++tries > 16) clearInterval(pollT);
+  }, 250);
+} else {
+  TTS.none = true;
+}
+function ttsOk() {
+  return 'speechSynthesis' in window && !TTS.none;
+}
+function speak(text, opts) {
+  opts = opts || {};
+  if (!ttsOk()) { if (opts.onend) opts.onend(); return; }
+  try { speechSynthesis.cancel(); } catch (e) {}
+  if (TTS.onDone) { const f = TTS.onDone; TTS.onDone = null; f(); }
+  setTimeout(() => {
+    const u = new SpeechSynthesisUtterance(stripParens(text));
+    if (TTS.voice) u.voice = TTS.voice;
+    u.lang = (TTS.voice && TTS.voice.lang) || 'fr-FR';
+    u.rate = opts.rate || 0.9;
+    u.pitch = 1.0;
+    TTS.currentU = u;
+    const done = () => {
+      if (TTS.currentU === u) { TTS.currentU = null; TTS.onDone = null; }
+      if (opts.onend) opts.onend();
+    };
+    TTS.onDone = opts.onend || null;
+    u.onend = done;
+    u.onerror = done;
+    if (opts.onstart) u.onstart = opts.onstart;
+    try { speechSynthesis.speak(u); } catch (e) { done(); }
+    // Fallback, falls onend nie feuert (manche Android-Engines)
+    setTimeout(() => { if (TTS.currentU === u) done(); }, Math.max(3000, text.length * 130));
+  }, 60);
+}
+// iOS: nach Rückkehr in den Vordergrund festgefahrene Sprachausgabe lösen
+document.addEventListener('visibilitychange', () => {
+  if (!('speechSynthesis' in window)) return;
+  try {
+    if (document.visibilityState === 'visible') { speechSynthesis.resume(); speechSynthesis.cancel(); }
+    else { speechSynthesis.cancel(); }
+  } catch (e) {}
+});
+window.addEventListener('pageshow', () => {
+  try { speechSynthesis.resume(); speechSynthesis.cancel(); } catch (e) {}
+});
+// Erste Berührung: Sprachausgabe „aufwecken" (iOS-Geste) + Audio-Kontext
+document.addEventListener('pointerdown', function unlock() {
+  if (!TTS.unlocked && 'speechSynthesis' in window) {
+    TTS.unlocked = true;
+    try {
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0;
+      speechSynthesis.speak(u);
+    } catch (e) {}
+    refreshVoices();
+  }
+  SFX.ensure();
+  document.removeEventListener('pointerdown', unlock);
+});
+
+// Eine bestimmte Stimme ausprobieren (ohne die Auswahl zu ändern)
+function speakWith(v, text) {
+  if (!('speechSynthesis' in window)) return;
+  try { speechSynthesis.cancel(); } catch (e) {}
+  setTimeout(() => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.voice = v;
+    u.lang = v.lang || 'fr-FR';
+    u.rate = 0.9;
+    TTS.currentU = u;
+    u.onend = u.onerror = () => { if (TTS.currentU === u) TTS.currentU = null; };
+    try { speechSynthesis.speak(u); } catch (e) {}
+  }, 60);
+}
+
+// Sprech-Knopf-Animation an ein Element binden
+function speakWithPulse(text, el) {
+  if (!el) { speak(text); return; }
+  el.classList.add('speaking');
+  const row = el.closest('.wrow');
+  if (row) row.classList.add('speaking');
+  speak(text, {
+    onend: () => {
+      el.classList.remove('speaking');
+      if (row) row.classList.remove('speaking');
+    },
+  });
+}
+
+/* ================= Töne (WebAudio, ohne Dateien) ================= */
+
+const SFX = {
+  ctx: null,
+  ensure() {
+    if (!state.settings.sounds) return;
+    try {
+      if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+    } catch (e) {}
+  },
+  tone(freq, dur, type, delay, vol) {
+    if (!state.settings.sounds || !this.ctx) return;
+    try {
+      const t0 = this.ctx.currentTime + (delay || 0);
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = type || 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol || 0.18, t0 + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g).connect(this.ctx.destination);
+      o.start(t0);
+      o.stop(t0 + dur + 0.05);
+    } catch (e) {}
+  },
+  good() { this.ensure(); this.tone(660, 0.09); this.tone(880, 0.12, 'sine', 0.09); },
+  bad() { this.ensure(); this.tone(180, 0.12, 'triangle', 0, 0.12); },
+  star() { this.ensure(); this.tone(660, 0.08); this.tone(880, 0.08, 'sine', 0.08); this.tone(1174, 0.16, 'sine', 0.16); },
+};
+
+/* ================= Konfetti ================= */
+
+function confetti(colors) {
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const old = $('#confetti');
+  if (old) old.remove();
+  const cv = document.createElement('canvas');
+  cv.id = 'confetti';
+  document.body.appendChild(cv);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = innerWidth * dpr;
+  cv.height = innerHeight * dpr;
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const cols = colors || ['#EE6C4D', '#F5B942', '#1F9E92', '#4353A8', '#A93E72'];
+  const parts = [];
+  for (let i = 0; i < 120; i++) {
+    parts.push({
+      x: innerWidth / 2 + (Math.random() - 0.5) * innerWidth * 0.5,
+      y: -20 - Math.random() * innerHeight * 0.3,
+      vx: (Math.random() - 0.5) * 3,
+      vy: 1.5 + Math.random() * 2.5,
+      rot: Math.random() * Math.PI,
+      vr: (Math.random() - 0.5) * 0.22,
+      w: 7 + Math.random() * 6,
+      h: 4 + Math.random() * 4,
+      c: pick(cols),
+    });
+  }
+  const t0 = performance.now();
+  let raf;
+  function frame(t) {
+    const el = t - t0;
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    for (const p of parts) {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.045; p.rot += p.vr;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.c;
+      ctx.globalAlpha = Math.max(0, 1 - el / 2400);
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    }
+    if (el < 2500 && document.visibilityState === 'visible') raf = requestAnimationFrame(frame);
+    else cv.remove();
+  }
+  raf = requestAnimationFrame(frame);
+}
+
+/* ================= Icons (inline SVG) ================= */
+
+const IC = {
+  speaker: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>',
+  cards: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="13" height="14" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v12"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>',
+  chevL: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01A1.7 1.7 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01A1.7 1.7 0 0 0 20.91 10H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg>',
+  flame: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 22c4.4 0 7.5-2.9 7.5-7.2 0-3.4-2.1-5.9-3.9-7.8-.6 1.4-1.6 2.4-2.6 2.9.3-2.6-.7-5.7-3.4-7.9-.3 2.4-1.3 4-2.6 5.6C5.6 9.3 4.5 11.4 4.5 14 4.5 19.1 7.6 22 12 22z"/></svg>',
+  star: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2 2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17l-6.1 3.6 1.4-6.8L2.2 9.1l6.9-.8z"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4.5 4.5L19 8"/></svg>',
+  // Lernziel-Symbole
+  u1: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V8a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v13"/><path d="M6 12h12"/><path d="M9 5V3h6v2"/><path d="M4 21h16"/></svg>',
+  uS: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 4 6 6-9.5 9.5a2.1 2.1 0 0 1-1.5.6H5v-4a2.1 2.1 0 0 1 .6-1.5z"/><path d="m12 6 6 6"/></svg>',
+  u2: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4M16 3v4"/></svg>',
+  u3: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V11l9-6 9 6v10"/><path d="M9 21v-6h6v6"/><path d="M3 21h18"/></svg>',
+};
+const UNIT_ICON = { '1': IC.u1, 'S': IC.uS, '2': IC.u2, '3': IC.u3 };
+
+function starRow(n, cls) {
+  let h = '<span class="stars ' + (cls || '') + '" aria-label="' + n + ' von 3 Sternen">';
+  for (let i = 1; i <= 3; i++) h += '<span class="' + (i <= n ? '' : 'off') + '">' + IC.star + '</span>';
+  return h + '</span>';
+}
+
+/* ================= Navigation ================= */
+
+const SCREENS = { home: 'scr-home', unit: 'scr-unit', listen: 'scr-listen', cards: 'scr-cards', quiz: 'scr-quiz' };
+let screenNow = { s: 'home', u: null, mode: null };
+
+function showScreen(next, backAnim) {
+  for (const id of Object.values(SCREENS)) $('#' + id).classList.remove('active', 'back-anim');
+  const el = $('#' + SCREENS[next.s]);
+  el.classList.add('active');
+  if (backAnim) el.classList.add('back-anim');
+  screenNow = next;
+  window.scrollTo(0, 0);
+}
+function navTo(next) {
+  history.pushState(next, '');
+  renderScreen(next);
+  showScreen(next, false);
+}
+function renderScreen(next) {
+  if (next.s === 'home') renderHome();
+  else if (next.s === 'unit') renderUnit(next.u);
+  else if (next.s === 'listen') renderListen(next.u);
+  else if (next.s === 'cards') startCards(next.u);
+  else if (next.s === 'quiz') startQuiz(next.mode, next.u);
+}
+window.addEventListener('popstate', (e) => {
+  try { speechSynthesis.cancel(); } catch (err) {}
+  hideFeedback();
+  const st = (e.state && e.state.s) ? e.state : { s: 'home', u: null };
+  renderScreen(st);
+  showScreen(st, true);
+});
+function goBack() { history.back(); }
+
+/* ================= Home ================= */
+
+let noVoiceDismissed = false;
+
+function buildTrainingRound() {
+  const t = todayStr();
+  const seen = [], fresh = [];
+  for (const w of VOCAB) {
+    const s = state.words[w.id];
+    if (s && s.seen > 0) { if (isDue(s)) seen.push({ w, s }); }
+    else fresh.push(w);
+  }
+  seen.sort((a, b) => (a.s.due || t).localeCompare(b.s.due || t) || a.s.box - b.s.box);
+  const out = seen.map(x => x.w).slice(0, 8);
+  for (const w of fresh) {
+    if (out.length >= 8 || out.filter(x => !state.words[x.id] || state.words[x.id].seen === 0).length >= 5) break;
+    out.push(w);
+  }
+  return out;
+}
+function weakWords() {
+  return VOCAB.filter(w => { const s = state.words[w.id]; return s && isWeak(s); });
+}
+
+function renderHome() {
+  const due = buildTrainingRound();
+  const weak = weakWords();
+  const streakN = state.streak.count;
+  const doneToday = practicedToday();
+
+  let unitsHtml = '';
+  for (const uk of UNIT_ORDER) {
+    const U = UNITS[uk];
+    const wordsU = UNIT_WORDS[uk];
+    const learned = wordsU.filter(w => { const s = state.words[w.id]; return s && isLearned(s); }).length;
+    unitsHtml +=
+      '<button class="unit-card" data-unit="' + uk + '">' +
+        '<span class="glyph" style="background:' + U.tint + ';color:' + U.deep + '">' + UNIT_ICON[uk] + '</span>' +
+        '<span class="u-info">' +
+          '<span class="u-name">' + esc(U.name) + '</span>' +
+          '<span class="u-sub" style="display:block">' + esc(U.sub) + '</span>' +
+          '<span class="u-meta">' + wordsU.length + ' Wörter · ' + learned + ' gelernt</span>' +
+        '</span>' +
+        starRow(state.stars[uk] || 0) +
+      '</button>';
+  }
+
+  const trainHtml = due.length
+    ? '<div class="train-card">' +
+        '<div class="t-info"><h2>Training</h2><p>' +
+          (due.length === 1 ? '1 Wort wartet auf dich' : due.length + ' Wörter warten auf dich') +
+        '</p></div>' +
+        '<button class="btn primary big" id="btn-train">Los!</button>' +
+      '</div>'
+    : '<div class="train-card">' +
+        '<div class="t-info"><h2>Training</h2><p>Alles erledigt! Komm morgen wieder.</p></div>' +
+        '<button class="btn soft" id="btn-anyway">Trotzdem üben</button>' +
+      '</div>';
+
+  const weakHtml = weak.length >= 3
+    ? '<button class="btn soft weakbtn" id="btn-weak">Knifflige Wörter üben (' + weak.length + ')</button>'
+    : '';
+
+  const noVoiceHtml = (TTS.none && !noVoiceDismissed)
+    ? '<div class="notice"><span>Auf diesem Gerät gibt es keine französische Stimme – die App funktioniert trotzdem, einfach ohne Ton.</span><button id="btn-nv-ok" aria-label="Hinweis schliessen">OK</button></div>'
+    : '';
+
+  $('#scr-home').innerHTML =
+    '<header class="home-head">' +
+      '<div class="hello"><h1>Salut Nea!</h1><p class="sub">Bereit für ein bisschen Französisch?</p></div>' +
+      (streakN > 0 || doneToday
+        ? '<span class="chip' + (doneToday ? ' done' : '') + '" id="streak-chip">' +
+            (doneToday ? IC.check : '<span class="flame">' + IC.flame + '</span>') +
+            '<b>' + streakN + '</b><span>' + (streakN === 1 ? 'Tag' : 'Tage') + '</span>' +
+          '</span>'
+        : '') +
+    '</header>' +
+    noVoiceHtml + trainHtml + weakHtml +
+    '<div class="unit-list">' + unitsHtml + '</div>' +
+    '<div class="home-foot"><button class="iconbtn" id="btn-settings" aria-label="Einstellungen">' + IC.gear + '</button></div>';
+
+  const bt = $('#btn-train');
+  if (bt) bt.addEventListener('click', () => navTo({ s: 'quiz', mode: 'training' }));
+  const ba = $('#btn-anyway');
+  if (ba) ba.addEventListener('click', () => navTo({ s: 'quiz', mode: 'anyway' }));
+  const bw = $('#btn-weak');
+  if (bw) bw.addEventListener('click', () => navTo({ s: 'quiz', mode: 'weak' }));
+  const nv = $('#btn-nv-ok');
+  if (nv) nv.addEventListener('click', () => { noVoiceDismissed = true; renderHome(); });
+  $('#btn-settings').addEventListener('click', openSettings);
+  $$('.unit-card', $('#scr-home')).forEach(b =>
+    b.addEventListener('click', () => navTo({ s: 'unit', u: b.dataset.unit })));
+}
+
+/* ================= Lernziel-Seite ================= */
+
+function renderUnit(uk) {
+  const U = UNITS[uk];
+  const wordsU = UNIT_WORDS[uk];
+  const learned = wordsU.filter(w => { const s = state.words[w.id]; return s && isLearned(s); }).length;
+  const pct = wordsU.length ? Math.round(learned / wordsU.length * 100) : 0;
+
+  $('#scr-unit').innerHTML =
+    '<div class="screen-head">' +
+      '<button class="iconbtn" id="u-back" aria-label="Zurück">' + IC.chevL + '</button>' +
+      '<div class="titles"></div>' +
+    '</div>' +
+    '<div class="unit-hero">' +
+      '<span class="glyph" style="background:' + U.tint + ';color:' + U.deep + '">' + UNIT_ICON[uk] + '</span>' +
+      '<h2>' + esc(U.name) + '</h2>' +
+      '<p class="sub">' + esc(U.sub) + ' · ' + wordsU.length + ' Wörter</p>' +
+      starRow(state.stars[uk] || 0) +
+      '<p class="starhint">Sterne holst du im Quiz</p>' +
+    '</div>' +
+    '<div class="modes">' +
+      '<button class="mode-btn" id="m-listen"><span class="m-ic">' + IC.speaker + '</span>Anhören</button>' +
+      '<button class="mode-btn" id="m-cards"><span class="m-ic">' + IC.cards + '</span>Lernkarten</button>' +
+      '<button class="mode-btn" id="m-quiz"><span class="m-ic">' + IC.bolt + '</span>Quiz</button>' +
+    '</div>' +
+    '<div class="prog-line">' +
+      '<div class="lbl"><span>gelernt</span><span>' + learned + ' von ' + wordsU.length + '</span></div>' +
+      '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
+    '</div>';
+
+  $('#u-back').addEventListener('click', goBack);
+  $('#m-listen').addEventListener('click', () => navTo({ s: 'listen', u: uk }));
+  $('#m-cards').addEventListener('click', () => navTo({ s: 'cards', u: uk }));
+  $('#m-quiz').addEventListener('click', () => navTo({ s: 'quiz', mode: 'unit', u: uk }));
+}
+
+/* ================= Anhören ================= */
+
+function renderListen(uk) {
+  const U = UNITS[uk];
+  const wordsU = UNIT_WORDS[uk];
+  let rows = '';
+  for (const w of wordsU) {
+    const s = state.words[w.id];
+    const box = s ? s.box : 0;
+    let dots = '<span class="dots" aria-hidden="true">';
+    for (let i = 1; i <= 4; i++) dots += '<i class="' + (box >= i ? 'on' : '') + '"></i>';
+    dots += '</span>';
+    rows +=
+      '<li><button class="wrow" data-id="' + esc(w.id) + '">' +
+        '<span class="w-main">' +
+          '<span class="w-fr" lang="fr" style="display:block">' + esc(w.fr) + '</span>' +
+          '<span class="w-de" style="display:block">' + esc(w.de) + '</span>' +
+        '</span>' + dots +
+        '<span class="spk' + (ttsOk() ? '' : ' off') + '" aria-hidden="true">' + IC.speaker + '</span>' +
+      '</button></li>';
+  }
+  $('#scr-listen').innerHTML =
+    '<div class="screen-head">' +
+      '<button class="iconbtn" id="l-back" aria-label="Zurück">' + IC.chevL + '</button>' +
+      '<div class="titles"><h2>Anhören</h2><p class="sub">' + esc(U.name) + ' · ' + esc(U.sub) + '</p></div>' +
+    '</div>' +
+    '<ul class="wlist">' + rows + '</ul>';
+
+  $('#l-back').addEventListener('click', goBack);
+  $$('.wrow', $('#scr-listen')).forEach(b => {
+    b.addEventListener('click', () => {
+      const w = BY_ID[b.dataset.id];
+      if (w) speakWithPulse(w.tts, $('.spk', b));
+    });
+  });
+}
+
+/* ================= Lernkarten ================= */
+
+let cards = null;
+
+function startCards(uk) {
+  const wordsU = UNIT_WORDS[uk];
+  const due = [], rest = [];
+  for (const w of wordsU) {
+    const s = state.words[w.id];
+    (s && s.seen > 0 && !isDue(s) ? rest : due).push(w);
+  }
+  let deck = shuffle(due).concat(shuffle(rest)).slice(0, 10);
+  // kein Wort doppelt hintereinander kann bei Wiedereinreihung entstehen – dort geregelt
+  cards = {
+    uk, deck,
+    idx: 0,
+    counts: {},            // id → wie oft schon gezeigt
+    known: 0, again: 0,
+    flipped: false,
+    history: [],           // für «Zurück»
+  };
+  renderCard();
+}
+
+function renderCard() {
+  const scr = $('#scr-cards');
+  const U = UNITS[cards.uk];
+  if (cards.idx >= cards.deck.length) { renderCardsEnd(); return; }
+  const w = cards.deck[cards.idx];
+  cards.flipped = false;
+  const showHint = !state.hints.flip;
+
+  scr.innerHTML =
+    '<div class="screen-head cards-top">' +
+      '<button class="iconbtn" id="c-back" aria-label="Zurück">' + IC.chevL + '</button>' +
+      '<span class="count">' + (cards.idx + 1) + ' / ' + cards.deck.length + '</span>' +
+      '<button class="undo' + (cards.history.length ? ' show' : '') + '" id="c-undo">Zurück</button>' +
+    '</div>' +
+    '<div class="card-stage">' +
+      '<div class="fcard" id="fcard" style="--tint:' + U.deep + '" role="button" aria-label="Karte umdrehen" tabindex="0">' +
+        '<div class="face front">' +
+          '<span class="lang-tag">Französisch</span>' +
+          '<span class="word" lang="fr">' + esc(w.fr) + '</span>' +
+          (ttsOk() ? '<span class="spk" id="c-spk" role="button" aria-label="Nochmals anhören">' + IC.speaker + '</span>' : '') +
+        '</div>' +
+        '<div class="face back">' +
+          '<span class="lang-tag">Deutsch</span>' +
+          '<span class="word">' + esc(w.de) + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<p class="card-hint" id="c-hint">' + (showHint ? 'Tippe die Karte zum Umdrehen' : '') + '</p>' +
+      '<div class="card-actions" id="c-actions">' +
+        '<button class="btn again" id="c-again">Nochmals üben</button>' +
+        '<button class="btn okfill" id="c-known">Gewusst!</button>' +
+      '</div>' +
+    '</div>';
+
+  const fc = $('#fcard');
+  const flip = () => {
+    if (!cards.flipped) {
+      cards.flipped = true;
+      fc.classList.add('flipped');
+      $('#c-actions').classList.add('show');
+      $('#c-hint').textContent = '';
+      if (!state.hints.flip) { state.hints.flip = true; save(); }
+    } else {
+      cards.flipped = false;
+      fc.classList.remove('flipped');
+    }
+  };
+  fc.addEventListener('click', (e) => {
+    if (e.target.closest('#c-spk')) return;
+    flip();
+  });
+  fc.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
+  const spk = $('#c-spk');
+  if (spk) spk.addEventListener('click', (e) => { e.stopPropagation(); speakWithPulse(w.tts, spk); });
+  $('#c-back').addEventListener('click', goBack);
+  $('#c-undo').addEventListener('click', undoCard);
+  $('#c-again').addEventListener('click', () => rateCard(false));
+  $('#c-known').addEventListener('click', () => rateCard(true));
+
+  // Wischen (nur nach dem Umdrehen)
+  let px = null;
+  fc.addEventListener('pointerdown', (e) => { px = e.clientX; });
+  fc.addEventListener('pointerup', (e) => {
+    if (px === null) return;
+    const dx = e.clientX - px;
+    px = null;
+    if (!cards.flipped || Math.abs(dx) < Math.min(innerWidth * 0.22, 110)) return;
+    rateCard(dx > 0);
+  });
+
+  // Französisch automatisch vorlesen (nach erster Berührung freigeschaltet)
+  if (TTS.unlocked) speakWithPulse(w.tts, spk);
+}
+
+function rateCard(known) {
+  const w = cards.deck[cards.idx];
+  const prev = JSON.parse(JSON.stringify(ws(w.id)));
+  cards.history.push({ idx: cards.idx, id: w.id, prev, known, deckLen: cards.deck.length });
+  recordAttempt(w.id, known);
+  const streakInfo = notePractice('card');
+  if (known) {
+    cards.known++;
+    const s = ws(w.id);
+    if (s.box === 0) promote(w.id);       // Selbst-Einschätzung zählt nur fürs erste Kästchen
+  } else {
+    cards.again++;
+    demote(w.id);
+    const n = (cards.counts[w.id] || 1);
+    if (n < 3) {                          // höchstens 3 Auftritte pro Runde
+      const at = Math.min(cards.deck.length, cards.idx + 3 + Math.floor(Math.random() * 2));
+      cards.deck.splice(at, 0, w);
+    }
+  }
+  cards.counts[w.id] = (cards.counts[w.id] || 1) + 1;
+  cards.idx++;
+  if (streakInfo.milestone) { SFX.star(); confetti(); }
+  renderCard();
+}
+function undoCard() {
+  const h = cards.history.pop();
+  if (!h) return;
+  state.words[h.id] = h.prev;
+  if (h.known) cards.known--; else {
+    cards.again--;
+    if (cards.deck.length > h.deckLen) {
+      // wieder eingereihte Karte entfernen
+      for (let i = cards.deck.length - 1; i > h.idx; i--) {
+        if (cards.deck[i].id === h.id) { cards.deck.splice(i, 1); break; }
+      }
+    }
+  }
+  cards.counts[h.id] = Math.max(1, (cards.counts[h.id] || 2) - 1);
+  cards.idx = h.idx;
+  save();
+  renderCard();
+}
+function renderCardsEnd() {
+  const scr = $('#scr-cards');
+  scr.innerHTML =
+    '<div class="screen-head">' +
+      '<button class="iconbtn" id="ce-back" aria-label="Zurück">' + IC.chevL + '</button>' +
+      '<div class="titles"></div>' +
+    '</div>' +
+    '<div class="end-wrap">' +
+      '<h2>Super gemacht!</h2>' +
+      '<p class="end-stat">' + cards.known + ' gewusst · ' + cards.again + ' zum Üben</p>' +
+      '<div class="end-btns">' +
+        '<button class="btn primary big" id="ce-again">Nochmals</button>' +
+        '<button class="btn ghost" id="ce-done">Fertig</button>' +
+      '</div>' +
+    '</div>';
+  $('#ce-back').addEventListener('click', goBack);
+  $('#ce-done').addEventListener('click', goBack);
+  $('#ce-again').addEventListener('click', () => startCards(cards.uk));
+}
+
+/* ================= Quiz ================= */
+
+let quiz = null;
+const PRAISE = ['Richtig!', 'Genau!', 'Super!', 'Stark!', 'Parfait!', 'Très bien!', 'Bravo!'];
+let lastPraise = '';
+
+function praise() {
+  let p;
+  do { p = pick(PRAISE); } while (p === lastPraise && PRAISE.length > 1);
+  lastPraise = p;
+  return p;
+}
+
+function pickQType(w) {
+  const s = state.words[w.id];
+  const box = s ? s.box : 0;
+  const listen = ttsOk();
+  let pool;
+  if (w.cat === 'satz') {
+    pool = listen ? ['listenDE', 'mcFRDE'] : ['mcFRDE'];
+  } else if (box <= 1) {
+    pool = listen ? ['mcFRDE', 'listenDE'] : ['mcFRDE'];
+  } else if (box === 2) {
+    pool = listen ? ['mcDEFR', 'listenFR', 'mcFRDE'] : ['mcDEFR', 'mcFRDE'];
+  } else if (box === 3) {
+    pool = listen ? ['typeDE', 'mcDEFR', 'listenFR'] : ['typeDE', 'mcDEFR'];
+  } else {
+    pool = listen ? ['typeFR', 'typeDE', 'listenDE'] : ['typeFR', 'typeDE'];
+  }
+  return Math.random() < 0.6 ? pool[0] : pick(pool);
+}
+
+function sameMeaning(a, b) { return norm(a.de) === norm(b.de); }
+
+function pickDistractors(w, side, n) {
+  const val = x => side === 'de' ? x.de : x.frMain;
+  const seen = new Set([norm(val(w))]);
+  const ok = x => {
+    const v = norm(val(x));
+    if (seen.has(v) || sameMeaning(w, x)) return false;
+    seen.add(v);
+    return true;
+  };
+  const tiers = [
+    VOCAB.filter(x => x !== w && x.cat === w.cat && x.u === w.u),
+    VOCAB.filter(x => x !== w && x.cat === w.cat),
+    VOCAB.filter(x => x !== w && x.u === w.u),
+    VOCAB.filter(x => x !== w),
+  ];
+  const out = [];
+  for (const tier of tiers) {
+    for (const x of shuffle(tier)) {
+      if (out.length >= n) break;
+      if (ok(x)) out.push(x);
+    }
+    if (out.length >= n) break;
+  }
+  // Bei Französisch-Optionen: Artikel soll die Antwort nicht verraten
+  if (side === 'fr') {
+    const art = (norm(val(w)).match(FR_ART) || [''])[0];
+    if (art && !out.some(x => norm(val(x)).startsWith(art))) {
+      const swap = VOCAB.find(x => x !== w && !out.includes(x) && norm(val(x)).startsWith(art) && !sameMeaning(w, x) && !seen.has(norm(val(x))));
+      if (swap && out.length) out[out.length - 1] = swap;
+    }
+  }
+  return out.map(val);
+}
+
+function startQuiz(mode, uk) {
+  let words;
+  if (mode === 'unit') {
+    const wordsU = UNIT_WORDS[uk];
+    const due = wordsU.filter(w => { const s = state.words[w.id]; return !s || isDue(s); });
+    const rest = wordsU.filter(w => !due.includes(w));
+    words = shuffle(due).concat(shuffle(rest)).slice(0, 8);
+    // Mini-Lernziele: Wörter doppelt fragen, damit eine Runde entsteht
+    if (words.length < 4 && words.length > 0) words = words.concat(shuffle(words));
+  } else if (mode === 'weak') {
+    words = shuffle(weakWords()).slice(0, 8);
+  } else if (mode === 'anyway') {
+    const scored = VOCAB.map(w => ({ w, s: state.words[w.id] }))
+      .sort((a, b) => (a.s ? a.s.box : 0) - (b.s ? b.s.box : 0));
+    words = shuffle(scored.slice(0, 12).map(x => x.w)).slice(0, 8);
+  } else {
+    words = buildTrainingRound();
+  }
+  if (!words.length) { history.back(); return; }
+
+  quiz = {
+    mode, uk,
+    queue: words.map((w, i) => ({ w, type: pickQType(w), seg: i, retry: false })),
+    idx: 0,
+    len: words.length,
+    segs: new Array(words.length).fill(''),   // '' | 'ok' | 'retry'
+    firstTry: 0,
+    misses: [],                               // Wörter mit Fehlversuch (für die Zusammenfassung)
+    locked: false,
+  };
+  renderQuestion();
+}
+
+function segbarHtml() {
+  return '<div class="segbar" aria-hidden="true">' +
+    quiz.segs.map(s => '<i class="' + s + '"></i>').join('') + '</div>';
+}
+
+function renderQuestion() {
+  const scr = $('#scr-quiz');
+  hideFeedback();
+  if (quiz.idx >= quiz.queue.length) { renderQuizEnd(); return; }
+  const q = quiz.queue[quiz.idx];
+  const w = q.w;
+  quiz.locked = false;
+
+  let promptHtml = '';
+  let answersHtml = '';
+  const spkBtn = (id, big) => ttsOk()
+    ? '<span class="spk' + (big ? ' bigspk' : '') + '" id="' + id + '" role="button" tabindex="0" aria-label="Anhören">' + IC.speaker + '</span>'
+    : (big ? '<span class="spk bigspk off" aria-hidden="true">' + IC.speaker + '</span>' : '');
+
+  if (q.type === 'mcFRDE' || q.type === 'typeDE') {
+    promptHtml =
+      '<div class="q-prompt">' +
+        '<div class="cap">' + (q.type === 'mcFRDE' ? 'Was heisst das?' : 'Schreibe auf Deutsch:') + '</div>' +
+        '<div class="big" lang="fr">' + esc(w.fr) + '</div>' + spkBtn('q-spk') +
+      '</div>';
+  } else if (q.type === 'mcDEFR' || q.type === 'typeFR') {
+    promptHtml =
+      '<div class="q-prompt">' +
+        '<div class="cap">' + (q.type === 'mcDEFR' ? 'Wie heisst das auf Französisch?' : 'Schreibe auf Französisch:') + '</div>' +
+        '<div class="big">' + esc(w.de) + '</div>' +
+      '</div>';
+  } else { // listenDE / listenFR
+    promptHtml =
+      '<div class="q-prompt">' +
+        '<div class="cap">Was hörst du?</div>' + spkBtn('q-spk', true) +
+      '</div>';
+  }
+
+  if (q.type === 'mcFRDE' || q.type === 'mcDEFR' || q.type === 'listenDE' || q.type === 'listenFR') {
+    const side = (q.type === 'mcFRDE' || q.type === 'listenDE') ? 'de' : 'fr';
+    const correct = side === 'de' ? w.de : w.frMain;
+    const opts = shuffle(pickDistractors(w, side, 3).concat([correct]));
+    q.correct = correct;
+    answersHtml = '<div class="q-answers" id="q-answers">' +
+      opts.map(o => '<button class="ans"' + (side === 'fr' ? ' lang="fr"' : '') + ' data-v="' + esc(o) + '">' + esc(o) + '</button>').join('') +
+      '</div>';
+  } else {
+    const isFr = q.type === 'typeFR';
+    const accents = isFr
+      ? '<div class="accents" id="q-accents">' +
+        ['é', 'è', 'ê', 'à', 'â', 'ç', 'ô', 'û', 'î', '’'].map(c => '<button type="button" data-c="' + c + '">' + c + '</button>').join('') +
+        '</div>'
+      : '';
+    answersHtml =
+      '<div class="q-answers type-wrap">' +
+        '<input class="type-input" id="q-input" type="text" ' +
+          'autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" enterkeyhint="done"' +
+          (isFr ? ' lang="fr"' : ' lang="de"') + ' aria-label="Deine Antwort">' +
+        accents +
+        '<div class="type-btns"><button class="btn primary" id="q-check">Prüfen</button></div>' +
+        '<button class="dontknow" id="q-dontknow">Weiss ich nicht</button>' +
+      '</div>';
+  }
+
+  scr.innerHTML =
+    '<div class="quiz-top">' +
+      '<button class="iconbtn" id="q-x" aria-label="Quiz beenden">' + IC.x + '</button>' +
+      segbarHtml() +
+    '</div>' +
+    '<div class="q-area">' + promptHtml + answersHtml + '</div>';
+
+  $('#q-x').addEventListener('click', goBack);
+  const spk = $('#q-spk');
+  if (spk) {
+    spk.addEventListener('click', () => speakWithPulse(w.tts, spk));
+    spk.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); speakWithPulse(w.tts, spk); } });
+  }
+  if (q.type.startsWith('listen') && TTS.unlocked) speakWithPulse(w.tts, spk);
+
+  const ansWrap = $('#q-answers');
+  if (ansWrap) {
+    $$('.ans', ansWrap).forEach(b => b.addEventListener('click', () => answerMC(q, b)));
+  }
+  const input = $('#q-input');
+  if (input) {
+    const check = () => answerTyped(q, input.value);
+    $('#q-check').addEventListener('click', check);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); check(); } });
+    $('#q-dontknow').addEventListener('click', () => answerTyped(q, null));
+    const acc = $('#q-accents');
+    if (acc) {
+      $$('button', acc).forEach(b => b.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const c = b.dataset.c;
+        const st = input.selectionStart == null ? input.value.length : input.selectionStart;
+        input.setRangeText(c, st, input.selectionEnd == null ? st : input.selectionEnd, 'end');
+        input.focus();
+      }));
+    }
+    setTimeout(() => { try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); } }, 250);
+  }
+}
+
+function applyResult(q, verdict) {
+  // Buchhaltung + Leitner; gibt zurück, ob die Runde das als «beim ersten Versuch richtig» zählt
+  const id = q.w.id;
+  const counted = verdict !== 'wrong';
+  recordAttempt(id, counted);
+  if (!q.retry) {
+    if (counted) {
+      quiz.firstTry++;
+      quiz.segs[q.seg] = 'ok';
+      if (verdict === 'right') {
+        const s = ws(id);
+        if (isDue(s)) promote(id);
+      }
+    } else {
+      quiz.segs[q.seg] = 'retry';
+      quiz.misses.push(q.w);
+      demote(id);
+      // gleiche Frage etwas später nochmals
+      const at = Math.min(quiz.queue.length, quiz.idx + 2 + Math.floor(Math.random() * 3));
+      quiz.queue.splice(at, 0, { w: q.w, type: q.type, seg: q.seg, retry: true });
+    }
+  } else if (!counted) {
+    demote(id);
+  }
+  refreshSegbar();
+}
+function refreshSegbar() {
+  const bar = $('.segbar', $('#scr-quiz'));
+  if (bar) bar.outerHTML = segbarHtml();
+}
+
+function answerMC(q, btn) {
+  if (quiz.locked) return;
+  quiz.locked = true;
+  const wrap = $('#q-answers');
+  wrap.classList.add('locked');
+  const isRight = btn.dataset.v === q.correct;
+  applyResult(q, isRight ? 'right' : 'wrong');
+  if (isRight) {
+    btn.classList.add('right');
+    SFX.good();
+    showToast(praise());
+    setTimeout(nextQuestion, 650);
+  } else {
+    btn.classList.add('wrong');
+    SFX.bad();
+    $$('.ans', wrap).forEach(b => { if (b.dataset.v === q.correct) b.classList.add('reveal'); });
+    showFeedback('bad', 'Nicht ganz.', fbPair(q.w), null);
+  }
+}
+
+function answerTyped(q, valueOrNull) {
+  if (quiz.locked) return;
+  if (valueOrNull !== null && !norm(valueOrNull)) return;   // leeres Feld: nichts tun
+  quiz.locked = true;
+  const lang = q.type === 'typeFR' ? 'fr' : 'de';
+  if (valueOrNull === null) {
+    applyResult(q, 'wrong');
+    SFX.bad();
+    showFeedback('bad', 'Kein Problem!', fbPair(q.w), null);
+    return;
+  }
+  const res = grade(valueOrNull, q.w, lang);
+  applyResult(q, res.v);
+  if (res.v === 'right') {
+    SFX.good();
+    showToast(praise());
+    setTimeout(nextQuestion, 650);
+  } else if (res.v === 'almost') {
+    SFX.good();
+    showFeedback('almost', 'Fast perfekt!', esc(res.note), null);
+  } else {
+    SFX.bad();
+    showFeedback('bad', 'Nicht ganz.' + (res.note ? ' ' + esc(res.note) : ''), fbPair(q.w), null);
+  }
+}
+
+function fbPair(w) {
+  return 'Richtig ist: <b lang="fr">«' + esc(w.frMain) + '»</b> – ' + esc(w.de);
+}
+
+function nextQuestion() {
+  quiz.idx++;
+  renderQuestion();
+}
+
+/* ---------- Feedback-Leiste & Toast ---------- */
+
+function showFeedback(kind, title, bodyHtml, note) {
+  const fb = $('#fb');
+  const spk = ttsOk() ? '<span class="spk" id="fb-spk" role="button" tabindex="0" aria-label="Anhören">' + IC.speaker + '</span>' : '';
+  fb.className = 'fb show ' + kind;
+  fb.innerHTML =
+    '<div class="fb-in">' +
+      '<h3>' + title + '</h3>' +
+      '<p class="fb-body"><span>' + bodyHtml + '</span>' + spk + '</p>' +
+      (note ? '<p class="fb-body">' + note + '</p>' : '') +
+      '<button class="btn primary" id="fb-next">Weiter</button>' +
+    '</div>';
+  const q = quiz && quiz.queue[quiz.idx];
+  const fspk = $('#fb-spk');
+  if (fspk && q) {
+    fspk.addEventListener('click', () => speakWithPulse(q.w.tts, fspk));
+    if (TTS.unlocked) speakWithPulse(q.w.tts, fspk);
+  }
+  $('#fb-next').addEventListener('click', () => { hideFeedback(); nextQuestion(); });
+}
+function hideFeedback() {
+  const fb = $('#fb');
+  fb.className = 'fb';
+  fb.innerHTML = '';
+}
+function showToast(text) {
+  const t = $('#toast');
+  t.textContent = text;
+  t.classList.remove('show');
+  void t.offsetWidth;
+  t.classList.add('show');
+}
+
+/* ---------- Rundenende ---------- */
+
+function renderQuizEnd() {
+  const scr = $('#scr-quiz');
+  const total = quiz.len;
+  const first = quiz.firstTry;
+  const pct = total ? first / total : 0;
+
+  let starHtml = '';
+  let newStar = false;
+  let stars = 0;
+  if (quiz.mode === 'unit') {
+    stars = pct >= 0.9 ? 3 : pct >= 0.65 ? 2 : 1;
+    const prevStars = state.stars[quiz.uk] || 0;
+    if (stars > prevStars) { state.stars[quiz.uk] = stars; newStar = true; save(); }
+    starHtml = '<div class="end-stars">' +
+      [1, 2, 3].map(i => '<span class="' + (i <= stars ? 'on' : '') + '" style="display:inline-flex">' + IC.star + '</span>').join('') +
+      '</div>';
+  }
+
+  const streakInfo = notePractice('round');
+  const firstRoundToday = state.day.rounds === 1;
+  const perfect = first === total && total > 0;
+
+  const missUnique = [];
+  for (const w of quiz.misses) if (!missUnique.includes(w)) missUnique.push(w);
+  let recap = '';
+  if (missUnique.length) {
+    recap = '<div class="recap"><h4>Diese Wörter üben wir nochmals:</h4><ul class="wlist">' +
+      missUnique.map(w =>
+        '<li><button class="wrow" data-id="' + esc(w.id) + '">' +
+          '<span class="w-main">' +
+            '<span class="w-fr" lang="fr" style="display:block">' + esc(w.fr) + '</span>' +
+            '<span class="w-de" style="display:block">' + esc(w.de) + '</span>' +
+          '</span>' +
+          '<span class="spk' + (ttsOk() ? '' : ' off') + '" aria-hidden="true">' + IC.speaker + '</span>' +
+        '</button></li>').join('') +
+      '</ul></div>';
+  }
+
+  scr.innerHTML =
+    '<div class="quiz-top">' +
+      '<button class="iconbtn" id="qe-x" aria-label="Schliessen">' + IC.x + '</button>' +
+      segbarHtml() +
+    '</div>' +
+    '<div class="end-wrap">' +
+      '<h2>Fertig!</h2>' + starHtml +
+      '<p class="end-stat">' + first + ' von ' + total + ' beim ersten Versuch</p>' +
+      (firstRoundToday && state.streak.count > 0
+        ? '<p class="end-streak"><span class="bump" style="display:inline-block">🔥</span> Serie: ' +
+          state.streak.count + (state.streak.count === 1 ? ' Tag!' : ' Tage!') + '</p>'
+        : '') +
+      recap +
+      '<div class="end-btns">' +
+        '<button class="btn primary big" id="qe-again">Nochmals</button>' +
+        '<button class="btn ghost" id="qe-done">Fertig</button>' +
+      '</div>' +
+    '</div>';
+
+  $('#qe-x').addEventListener('click', goBack);
+  $('#qe-done').addEventListener('click', goBack);
+  $('#qe-again').addEventListener('click', () => startQuiz(quiz.mode, quiz.uk));
+  $$('.recap .wrow', scr).forEach(b => {
+    b.addEventListener('click', () => {
+      const w = BY_ID[b.dataset.id];
+      if (w) speakWithPulse(w.tts, $('.spk', b));
+    });
+  });
+
+  if (perfect || (newStar && stars === 3) || streakInfo.milestone) {
+    SFX.star();
+    const tint = quiz.uk ? [UNITS[quiz.uk].deep, UNITS[quiz.uk].tint, '#F5B942', '#EE6C4D'] : null;
+    setTimeout(() => confetti(tint), 350);
+  } else if (newStar) {
+    SFX.star();
+  }
+}
+
+/* ================= Einstellungen ================= */
+
+const ACCENTS = {
+  coral: { c: '#EE6C4D', p: '#D95B3E' },
+  teal: { c: '#1F9E92', p: '#177E74' },
+  peri: { c: '#4353A8', p: '#37458C' },
+  rose: { c: '#A93E72', p: '#8E325F' },
+};
+function applyAccent() {
+  const a = ACCENTS[state.settings.accent] || ACCENTS.coral;
+  document.documentElement.style.setProperty('--primary', a.c);
+  document.documentElement.style.setProperty('--primary-press', a.p);
+}
+
+let confirmDelete = false;
+
+function openSettings() {
+  confirmDelete = false;
+  renderSettings();
+  $('#backdrop').classList.add('show');
+  $('#sheet').classList.add('show');
+}
+function closeSettings() {
+  $('#backdrop').classList.remove('show');
+  $('#sheet').classList.remove('show');
+  if (screenNow.s === 'home') renderHome();
+}
+function renderSettings() {
+  const sheet = $('#sheet');
+  let voicesHtml;
+  if (!('speechSynthesis' in window)) {
+    voicesHtml = '<p class="set-note">Dieser Browser kann leider nicht vorlesen.</p>';
+  } else if (!TTS.voices.length) {
+    voicesHtml = '<p class="set-note">Keine französische Stimme gefunden. Auf dem Handy oder Tablet kann man in den Geräte-Einstellungen französische Stimmen laden. Die App funktioniert auch ohne Ton.</p>';
+  } else {
+    voicesHtml = TTS.voices.slice(0, 6).map((v, i) => {
+      const sel = TTS.voice && v.name === TTS.voice.name && v.lang === TTS.voice.lang;
+      return '<button class="voice-row' + (sel ? ' sel' : '') + '" data-i="' + i + '">' +
+        '<span class="dot" aria-hidden="true"></span>' +
+        '<span class="v-name"><b>Stimme ' + (i + 1) + ' · Französisch</b><span>' + esc(v.name) + '</span></span>' +
+        '<span class="test" data-test="' + i + '">Testen</span>' +
+      '</button>';
+    }).join('');
+  }
+
+  sheet.innerHTML =
+    '<div class="grab"></div>' +
+    '<h3>Einstellungen</h3>' +
+    '<div class="set-group"><div class="g-lbl">Stimme</div>' + voicesHtml +
+      '<p class="set-note">Kein Ton? Prüfe den Stummschalter und die Lautstärke deines Geräts.</p>' +
+    '</div>' +
+    '<div class="set-group"><div class="g-lbl">Töne</div>' +
+      '<div class="set-row"><span>Quiz-Töne</span>' +
+        '<button class="switch' + (state.settings.sounds ? ' on' : '') + '" id="sw-sounds" role="switch" aria-checked="' + state.settings.sounds + '" aria-label="Quiz-Töne"></button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="set-group"><div class="g-lbl">Farbe</div>' +
+      '<div class="swatches">' +
+        Object.entries(ACCENTS).map(([k, a]) =>
+          '<button class="swatch' + (state.settings.accent === k ? ' sel' : '') + '" data-a="' + k + '" style="background:' + a.c + '" aria-label="Farbe ' + k + '"></button>'
+        ).join('') +
+      '</div>' +
+    '</div>' +
+    '<div class="set-group"><div class="g-lbl">Fortschritt</div>' +
+      '<div class="set-row"><span>Längste Serie</span><span>' + state.streak.rekord + ' ' + (state.streak.rekord === 1 ? 'Tag' : 'Tage') + '</span></div>' +
+      (confirmDelete
+        ? '<p class="set-note danger" style="margin-top:12px">Wirklich den ganzen Fortschritt löschen?</p>' +
+          '<div class="confirm-row">' +
+            '<button class="btn ghost" id="del-no">Abbrechen</button>' +
+            '<button class="btn dangerfill" id="del-yes">Löschen</button>' +
+          '</div>'
+        : '<button class="dontknow danger" id="del-ask" style="width:100%;margin-top:6px">Fortschritt löschen</button>') +
+    '</div>' +
+    '<button class="btn soft" id="sheet-close" style="width:100%">Fertig</button>';
+
+  $$('.voice-row', sheet).forEach(b => {
+    b.addEventListener('click', (e) => {
+      const i = Number(b.dataset.i);
+      const v = TTS.voices[i];
+      if (!v) return;
+      if (e.target.closest('.test')) { speakWith(v, 'Bonjour Nea!'); return; }
+      else {
+        TTS.voice = v;
+        state.settings.voiceName = v.name;
+        state.settings.voiceLang = v.lang;
+        save();
+        speak('Bonjour Nea!');
+      }
+      renderSettings();
+    });
+  });
+  $('#sw-sounds').addEventListener('click', () => {
+    state.settings.sounds = !state.settings.sounds;
+    save();
+    if (state.settings.sounds) SFX.good();
+    renderSettings();
+  });
+  $$('.swatch', sheet).forEach(b => {
+    b.addEventListener('click', () => {
+      state.settings.accent = b.dataset.a;
+      save();
+      applyAccent();
+      renderSettings();
+    });
+  });
+  const da = $('#del-ask');
+  if (da) da.addEventListener('click', () => { confirmDelete = true; renderSettings(); });
+  const dn = $('#del-no');
+  if (dn) dn.addEventListener('click', () => { confirmDelete = false; renderSettings(); });
+  const dy = $('#del-yes');
+  if (dy) dy.addEventListener('click', () => {
+    const settings = state.settings;
+    state = freshState();
+    state.settings = settings;
+    flushSave();
+    confirmDelete = false;
+    renderSettings();
+  });
+  $('#sheet-close').addEventListener('click', closeSettings);
+}
+$('#backdrop').addEventListener('click', closeSettings);
+
+/* ================= Start ================= */
+
+rollDay();
+applyAccent();
+renderHome();
+showScreen({ s: 'home', u: null });
+history.replaceState({ s: 'home', u: null }, '');
+
+// kleine Test-Hilfe (bewusst zugänglich – die App ist privat)
+window.__nea = {
+  vocab: VOCAB,
+  grade,
+  get quiz() { return quiz; },
+  get state() { return state; },
+  get tts() { return TTS; },
+};
+</script>
+</body>
+</html>
