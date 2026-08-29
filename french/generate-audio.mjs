@@ -19,6 +19,8 @@
  *                      gedachten Satz drumherum, was einzelne Wörter viel
  *                      natürlicher klingen lässt; der Kontext selbst wird
  *                      nicht mitgesprochen)
+ *   --speed <n>        Sprechtempo 0.7–1.2 (Standard: 0.8 — etwas langsamer,
+ *                      gut zum Lernen; 1.0 = natürliches Tempo der Stimme)
  *
  * Der API-Schlüssel kommt NUR aus der Umgebung (ELEVENLABS_API_KEY) und
  * landet nie im Repo. Stimme wahlweise auch via ELEVEN_VOICE_ID.
@@ -101,9 +103,11 @@ const CTX_NEXT = ' Tu peux le répéter.';
 
 async function ttsOne(KEY, cfg, text, outPath) {
   const useCtx = !has('--no-context');
+  const speed = Math.min(1.2, Math.max(0.7, parseFloat(opt('--speed') || '0.8')));
   const body = { text, model_id: cfg.model };
   if (cfg.langCode) body.language_code = 'fr';
   if (useCtx) { body.previous_text = CTX_PREV; body.next_text = CTX_NEXT; }
+  if (speed !== 1) body.voice_settings = { speed };
   for (let attempt = 1; attempt <= 4; attempt++) {
     const r = await fetch(
       'https://api.elevenlabs.io/v1/text-to-speech/' + cfg.voice + '?output_format=mp3_44100_64',
@@ -118,6 +122,12 @@ async function ttsOne(KEY, cfg, text, outPath) {
       return;
     }
     const errText = await r.text();
+    if (r.status === 400 && body.voice_settings) {
+      // Modell mag das Tempo nicht → einmal ohne voice_settings versuchen
+      console.log('  400 mit voice_settings – Versuch ohne Tempo-Einstellung');
+      delete body.voice_settings;
+      continue;
+    }
     if (r.status === 400 && (body.previous_text || body.next_text)) {
       // Modell/Endpoint mag den Kontext nicht → einmal ohne versuchen
       console.log('  400 mit Kontext – Versuch ohne previous_text/next_text');
