@@ -14,6 +14,11 @@
  *                      französische Stimme der eigenen Bibliothek, sonst
  *                      Standard-Stimme mit erzwungenem Französisch)
  *   --model <id>       Modell überschreiben (Standard: eleven_multilingual_v2)
+ *   --no-context       ohne Satz-Kontext erzeugen (Standard: mit Kontext —
+ *                      previous_text/next_text geben der Stimme einen
+ *                      gedachten Satz drumherum, was einzelne Wörter viel
+ *                      natürlicher klingen lässt; der Kontext selbst wird
+ *                      nicht mitgesprochen)
  *
  * Der API-Schlüssel kommt NUR aus der Umgebung (ELEVENLABS_API_KEY) und
  * landet nie im Repo. Stimme wahlweise auch via ELEVEN_VOICE_ID.
@@ -89,9 +94,16 @@ async function pickVoice(KEY) {
   return { voice: v0.voice_id, model: opt('--model') || 'eleven_turbo_v2_5', langCode: true };
 }
 
+// Gedachter Satz um das Wort herum: wird nicht mitgesprochen, gibt aber
+// natürliche Betonung statt abgehacktem Einzelwort-Klang.
+const CTX_PREV = 'Écoute bien, voici le mot : ';
+const CTX_NEXT = ' Tu peux le répéter.';
+
 async function ttsOne(KEY, cfg, text, outPath) {
+  const useCtx = !has('--no-context');
   const body = { text, model_id: cfg.model };
   if (cfg.langCode) body.language_code = 'fr';
+  if (useCtx) { body.previous_text = CTX_PREV; body.next_text = CTX_NEXT; }
   for (let attempt = 1; attempt <= 4; attempt++) {
     const r = await fetch(
       'https://api.elevenlabs.io/v1/text-to-speech/' + cfg.voice + '?output_format=mp3_44100_64',
@@ -106,6 +118,13 @@ async function ttsOne(KEY, cfg, text, outPath) {
       return;
     }
     const errText = await r.text();
+    if (r.status === 400 && (body.previous_text || body.next_text)) {
+      // Modell/Endpoint mag den Kontext nicht → einmal ohne versuchen
+      console.log('  400 mit Kontext – Versuch ohne previous_text/next_text');
+      delete body.previous_text;
+      delete body.next_text;
+      continue;
+    }
     if ((r.status === 429 || r.status >= 500) && attempt < 4) {
       const wait = 2000 * attempt;
       console.log('  ' + r.status + ' – neuer Versuch in ' + wait / 1000 + 's');
