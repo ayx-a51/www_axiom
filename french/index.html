@@ -142,8 +142,8 @@
 
   /* ---------- home ---------- */
   .home-head { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0 16px; }
-  .home-head .hello { flex: 1; }
-  .home-head h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.01em; }
+  .home-head .hello { flex: 1; min-width: 0; }
+  .home-head h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.01em; overflow-wrap: anywhere; }
   .home-head .sub { margin: 2px 0 0; font-size: 15px; color: var(--muted); }
   .chip {
     display: inline-flex; align-items: center; gap: 5px;
@@ -1050,7 +1050,7 @@ function freshState() {
     words: {},                                     // id → {box,due,seen,right,wrong,recent,lp,ld}
     stars: {},                                     // Unité → 0..3 (Bestwert, sinkt nie)
     streak: { count: 0, last: '', rekord: 0 },
-    day: { date: '', rounds: 0, cards: 0 },
+    day: { date: '', rounds: 0, cards: 0, newWords: 0 },
     hints: {},                                     // einmalige Hinweise
     settings: { name: 'Nea', sounds: true, accent: 'coral', sel: {} },
   };
@@ -1144,12 +1144,20 @@ function isWeak(s) {
   if (r.length >= 2 && r[r.length - 1] && r[r.length - 2]) return false;  // 2× zuletzt richtig → raus
   return r.includes(false);
 }
-function recordAttempt(id, ok) {
+// intoHistory=false bei einem zweiten Auftritt desselben Wortes in einer Runde:
+// die Antwort zählt, verfälscht aber nicht die «knifflig»-Einschätzung.
+function recordAttempt(id, ok, intoHistory) {
   const s = ws(id);
+  if (s.seen === 0) {                         // Wort heute neu dazugekommen
+    rollDay();
+    state.day.newWords = (state.day.newWords || 0) + 1;
+  }
   s.seen++;
   if (ok) s.right++; else s.wrong++;
-  s.recent.push(ok);
-  if (s.recent.length > 5) s.recent.shift();
+  if (intoHistory !== false) {
+    s.recent.push(ok);
+    if (s.recent.length > 5) s.recent.shift();
+  }
   save();
 }
 function promote(id) {
@@ -1176,7 +1184,7 @@ function demote(id) {
 function rollDay() {
   const t = todayStr();
   if (state.day.date !== t) {
-    state.day = { date: t, rounds: 0, cards: 0 };
+    state.day = { date: t, rounds: 0, cards: 0, newWords: 0 };
     save();
   }
 }
@@ -1559,10 +1567,14 @@ let noVoiceDismissed = false;
    neue Wörter erst, wenn die angefangenen gut genug sitzen.              */
 
 const ROUND_TRAINING = 20;   // Fragen in einer «Los!»-Runde
+const CORE_TRAINING = 12;    // ... davon verschiedene Wörter (Rest = Wiederholungen)
 const ROUND_UNIT = 10;       // Fragen in einer Unité-Runde
+const CORE_UNIT = 7;
 const ROUND_WEAK = 15;       // Fragen in «Knifflige Wörter»
-const ACTIVE_LIMIT = 12;     // so viele Wörter dürfen gleichzeitig im Lernen sein
+const CORE_WEAK = 8;
+const ACTIVE_LIMIT = 12;     // so viele Wörter sollen gleichzeitig im Lernen sein
 const NEW_PER_ROUND = 5;     // höchstens so viele neue Wörter pro Runde
+const NEW_PER_DAY = 5;       // ... und pro Tag
 const MAX_REP = 3;           // ein Wort höchstens 3× pro Runde
 
 // 0 = sitzt, grösser = kniffliger
@@ -1599,6 +1611,12 @@ function weakWords() {
     .sort((a, b) => priority(b) - priority(a));
 }
 
+// Wie viele neue Wörter dürfen heute noch dazukommen?
+function newRoomToday() {
+  rollDay();
+  return Math.max(0, NEW_PER_DAY - (state.day.newWords || 0));
+}
+
 // Welche Wörter kommen in die nächste «Los!»-Runde?
 function planTraining() {
   const started = [], fresh = [];
@@ -1607,13 +1625,14 @@ function planTraining() {
     if (s && s.seen > 0) started.push(w); else fresh.push(w);
   }
   const byPrio = started.slice().sort((a, b) => priority(b) - priority(a));
-  const picked = byPrio.filter(w => isDue(state.words[w.id])).slice(0, ROUND_TRAINING);
+  const dueList = byPrio.filter(w => isDue(state.words[w.id]));
 
-  // Neue Wörter nur, wenn nicht schon zu viele offen sind
-  const room = Math.max(0, ACTIVE_LIMIT - activeWords().length);
-  const newN = Math.max(0, Math.min(room, NEW_PER_ROUND, ROUND_TRAINING - picked.length));
+  // Tempo für neue Wörter: viel Offenes → weniger Neues, aber es geht immer
+  // mindestens ein Wort pro Tag weiter, damit das Buch nie stehen bleibt.
+  const room = Math.max(1, ACTIVE_LIMIT - activeWords().length);
+  const newN = Math.min(room, NEW_PER_ROUND, newRoomToday(), fresh.length);
   const newOnes = fresh.slice(0, newN);
-  picked.push(...newOnes);
+  const picked = dueList.slice(0, Math.max(0, CORE_TRAINING - newOnes.length)).concat(newOnes);
 
   // Gibt es heute gar nichts zu tun, bleibt die Runde leer — dann zeigt die
   // Startseite «Alles erledigt» (und «Trotzdem üben» für die Übermotivierten).
@@ -1621,7 +1640,7 @@ function planTraining() {
 
   // sonst mit noch nicht fälligen Wiederholungen auffüllen (nie mit neuen)
   for (const w of byPrio) {
-    if (picked.length >= ROUND_TRAINING) break;
+    if (picked.length >= CORE_TRAINING) break;
     if (picked.indexOf(w) < 0) picked.push(w);
   }
   return { picked, newOnes };
@@ -1661,8 +1680,10 @@ function expandRound(picked, target) {
       const score = n * 10 + priority(w);
       if (!best || score > bestN) { best = w; bestN = score; }
     }
-    if (!best) {                                   // Abstand nicht möglich → nimm irgendeins
-      for (const [w, n] of left) { if (n > 0) { best = w; break; } }
+    if (!best) {                                   // Abstand von 2 nicht möglich …
+      const last = out[out.length - 1];
+      for (const [w, n] of left) { if (n > 0 && w !== last) { best = w; break; } }   // … dann wenigstens nicht direkt hintereinander
+      if (!best) for (const [w, n] of left) { if (n > 0) { best = w; break; } }
       if (!best) break;
     }
     left.set(best, left.get(best) - 1);
@@ -1703,7 +1724,7 @@ function renderHome() {
     const nWeak = due.filter(w => { const s = state.words[w.id]; return s && isWeak(s); }).length;
     const nNew = plan.newOnes.length;
     trainLine = nQ + ' Fragen';
-    if (nWeak) trainLine += ' · ' + nWeak + (nWeak === 1 ? ' kniffliges' : ' knifflige');
+    if (nWeak) trainLine += ' · ' + nWeak + (nWeak === 1 ? ' kniffliges Wort' : ' knifflige Wörter');
     else if (nNew) trainLine += ' · ' + nNew + (nNew === 1 ? ' neues Wort' : ' neue Wörter');
   }
   const trainHtml = due.length
@@ -2116,17 +2137,20 @@ function startQuiz(mode, uk) {
     const wordsU = selWords(uk);
     const due = wordsU.filter(w => { const s = state.words[w.id]; return !s || isDue(s); });
     const rest = wordsU.filter(w => due.indexOf(w) < 0);
-    picked = shuffle(due).sort((a, b) => priority(b) - priority(a)).concat(shuffle(rest)).slice(0, ROUND_UNIT);
+    picked = shuffle(due).sort((a, b) => priority(b) - priority(a)).concat(shuffle(rest)).slice(0, CORE_UNIT);
     target = ROUND_UNIT;
   } else if (mode === 'weak') {
-    picked = weakWords().slice(0, ROUND_WEAK);
+    picked = weakWords().slice(0, CORE_WEAK);
     target = ROUND_WEAK;
   } else if (mode === 'anyway') {
-    picked = startedWords().sort((a, b) => priority(b) - priority(a)).slice(0, ROUND_TRAINING);
+    picked = startedWords().sort((a, b) => priority(b) - priority(a)).slice(0, CORE_TRAINING);
     if (!picked.length) picked = VOCAB.slice(0, NEW_PER_ROUND);
     target = ROUND_TRAINING;
   } else {
     picked = planTraining().picked;
+    // «Nochmals» direkt nach einer sauberen Runde: nichts mehr fällig →
+    // trotzdem eine Runde aus den schwächsten Wörtern statt zurück zur Startseite
+    if (!picked.length) picked = startedWords().sort((a, b) => priority(b) - priority(a)).slice(0, CORE_TRAINING);
     target = ROUND_TRAINING;
   }
   const words = expandRound(picked, target);
@@ -2141,16 +2165,20 @@ function startQuiz(mode, uk) {
     segs: new Array(words.length).fill(''),   // '' | 'ok' | 'retry'
     firstTry: 0,
     misses: [],                               // Wörter mit Fehlversuch (für die Zusammenfassung)
+    asked: new Set(),                         // welche Wörter in dieser Runde schon dran waren
     locked: false,
   };
   renderQuestion();
 }
 
 function segbarHtml() {
-  const done = quiz.segs.filter(s => s).length;
+  // Nenner ist die echte Warteschlange: Nachfragen zählen mit, damit nie
+  // «20 / 20» steht, während noch Fragen kommen.
+  const total = quiz.queue.length;
+  const done = Math.min(quiz.idx, total);
   return '<div class="segwrap">' +
     '<div class="segbar" aria-hidden="true">' + quiz.segs.map(s => '<i class="' + s + '"></i>').join('') + '</div>' +
-    '<span class="q-count">' + done + ' / ' + quiz.len + '</span>' +
+    '<span class="q-count">' + done + ' / ' + total + '</span>' +
   '</div>';
 }
 
@@ -2262,7 +2290,9 @@ function applyResult(q, verdict) {
   // Buchhaltung + Leitner; gibt zurück, ob die Runde das als «beim ersten Versuch richtig» zählt
   const id = q.w.id;
   const counted = verdict !== 'wrong';
-  recordAttempt(id, counted);
+  const firstThisRound = !quiz.asked.has(id);
+  quiz.asked.add(id);
+  recordAttempt(id, counted, firstThisRound);
   if (!q.retry) {
     if (counted) {
       quiz.firstTry++;
@@ -2588,9 +2618,9 @@ history.replaceState({ s: 'home', u: null }, '');
 // kleine Test-Hilfe (bewusst zugänglich – die App ist privat)
 window.__nea = {
   vocab: VOCAB, groups: GROUPS, uniteGroups: UNITE_GROUPS,
-  grade, ws, promote, demote, audioSlug, canHear, flushSave, pickQType, getSel, setSel, selWords,
-  planTraining, expandRound, priority, trouble, weakWords, activeWords, userName,
-  ROUND_TRAINING, ACTIVE_LIMIT, NEW_PER_ROUND, MAX_REP,
+  grade, ws, promote, demote, recordAttempt, audioSlug, canHear, flushSave, pickQType, getSel, setSel, selWords,
+  planTraining, expandRound, priority, trouble, weakWords, activeWords, startedWords, userName, newRoomToday,
+  ROUND_TRAINING, CORE_TRAINING, ACTIVE_LIMIT, NEW_PER_ROUND, NEW_PER_DAY, MAX_REP,
   get quiz() { return quiz; },
   get state() { return state; },
   get tts() { return TTS; },
