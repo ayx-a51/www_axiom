@@ -234,6 +234,47 @@
     background: var(--accent-soft); color: var(--accent);
   }
   .mode-btn .m-ic svg { width: 22px; height: 22px; }
+  /* ---------- Lernziel-Auswahl ---------- */
+  .g-lbl2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 22px 0 4px; }
+  .sec-head {
+    width: 100%; display: flex; align-items: center; gap: 12px;
+    padding: 12px 4px 8px; font-weight: 800; font-size: 15px; color: var(--ink);
+    text-align: left;
+  }
+  .sec-head .sec-count { margin-left: auto; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .plusbadge {
+    font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: 0.06em;
+    background: var(--star-bg); color: #9A7414; border-radius: 6px; padding: 2px 6px;
+    vertical-align: 2px;
+  }
+  .g-row {
+    width: 100%; display: flex; align-items: center; gap: 12px;
+    background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--r-btn);
+    padding: 10px 14px; margin-bottom: 8px; text-align: left;
+    transition: border-color 0.15s ease, transform 0.08s ease;
+  }
+  .g-row:active { transform: scale(0.99); }
+  .g-row.on { border-color: var(--accent); }
+  .g-row .g-info b { display: block; font-size: 15px; }
+  .g-row .g-info small { font-size: 12px; color: var(--muted); }
+  .cbx {
+    width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+    border: 2px solid var(--line); background: var(--surface); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .cbx svg { width: 16px; height: 16px; opacity: 0; }
+  .cbx.on { background: var(--accent); border-color: var(--accent); }
+  .cbx.on svg { opacity: 1; }
+  .cbx.some { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  .cbx.some svg { opacity: 1; }
+  .mode-btn:disabled { opacity: 0.45; }
+  .sel-hint { font-size: 13px; color: var(--warn); font-weight: 700; margin: 10px 0 0; text-align: center; }
+  .wgroup-head {
+    list-style: none; font-size: 12px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.07em; color: var(--muted); padding: 12px 2px 0;
+  }
+
   .prog-line { margin-top: 20px; }
   .prog-line .lbl { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
   .bar { height: 7px; border-radius: 4px; background: var(--line); overflow: hidden; }
@@ -530,69 +571,331 @@
 
 /* =====================================================================
    VOKABULAR
-   Hier neue Wörter oder ganze Lernziele ergänzen.
+   Hier neue Wörter, Lernziele oder ganze Unités ergänzen.
    Felder pro Wort:
-     u        Lernziel-Kürzel (muss in UNITS existieren)
-     cat      'satz' | 'ding' | 'fach' | 'tag' | 'verb'  (für Quiz-Auswahl)
-     fr       Französisch, exakt wie im Buch (wird angezeigt)
-     de       Deutsch, exakt wie im Buch
-     frForms  optional: akzeptierte Tipp-Varianten, z.B. ['les maths','les mathématiques']
+     un       Unité-Kürzel (muss in UNITES existieren, z.B. 'u1')
+     plus     true = aus dem Blatt «Vocabulaire plus» (sonst weglassen)
+     lz       Lernziel auf dem Blatt: '1' | '2' | '3' | 'S' | '4'
+     cat      Wortgruppe für gute Quiz-Ablenker: 'ding' | 'fach' | 'tag' |
+              'verb' | 'satz' (ganze Sätze, nie tippen) | 'gram' (Wendungen) |
+              'fam' | 'essen' | 'gesicht' | 'hobby'
+     fr / de  exakt wie im Buch (wird so angezeigt)
+     frForms  optional: akzeptierte Tipp-Varianten (Französisch)
+     deForms  optional: akzeptierte Tipp-Varianten (Deutsch)
+     tts      optional: was die Stimme spricht, falls anders als 'fr'
    Wichtig: 'fr' ist der Schlüssel für Neas Fortschritt — bestehende
    Einträge möglichst nicht umformulieren, sonst beginnt das Wort bei null.
    ===================================================================== */
 
-const UNITS = {
-  '1': { name: 'Lernziel 1', sub: 'Schulanfang',               tint: '#FFE3D3', deep: '#B84A2B' },
-  'S': { name: 'Lernziel S', sub: 'Schulsachen',               tint: '#DCF0E6', deep: '#23795B' },
-  '2': { name: 'Lernziel 2', sub: 'Schulfächer & Wochentage',  tint: '#E3E8FA', deep: '#4353A8' },
-  '3': { name: 'Lernziel 3', sub: 'Schule & Aktivitäten',      tint: '#FAE3EE', deep: '#A93E72' },
+const UNITES = {
+  u1: { name: 'Unité 1', sub: 'Schule & Wochentage', tint: '#DCF0E6', deep: '#23795B' },
+  u2: { name: 'Unité 2', sub: 'Familie',             tint: '#FAE3EE', deep: '#A93E72' },
+  u3: { name: 'Unité 3', sub: 'Hobbys & Freizeit',   tint: '#E3E8FA', deep: '#4353A8' },
+  u4: { name: 'Unité 4', sub: 'Essen & Gesicht',     tint: '#FFE3D3', deep: '#B84A2B' },
 };
-const UNIT_ORDER = ['1', 'S', '2', '3'];
+const UNITE_ORDER = ['u1', 'u2', 'u3', 'u4'];
 
 const VOCAB = [
-  // ── Lernziel 1 · Schulanfang ──────────────────────────────
-  { u: '1', cat: 'satz', fr: 'Chouette, c’est la rentrée!', de: 'Toll, es ist Schulanfang!' },
-  { u: '1', cat: 'satz', fr: 'Zut, c’est la rentrée!',      de: 'Oje, es ist Schulanfang!' },
-  // ── Lernziel S · Schulsachen ──────────────────────────────
-  { u: 'S', cat: 'ding', fr: 'le livre',        de: 'das Buch' },
-  { u: 'S', cat: 'ding', fr: 'la règle',        de: 'das Lineal' },
-  { u: 'S', cat: 'ding', fr: 'le classeur',     de: 'der Ordner' },
-  { u: 'S', cat: 'ding', fr: 'le cahier',       de: 'das Heft' },
-  { u: 'S', cat: 'ding', fr: 'le crayon',       de: 'der Bleistift' },
-  { u: 'S', cat: 'ding', fr: 'le stylo',        de: 'der Kugelschreiber' },
-  { u: 'S', cat: 'ding', fr: 'la gomme',        de: 'der Gummi' },
-  { u: 'S', cat: 'ding', fr: 'le tableau noir', de: 'die Wandtafel' },
-  { u: 'S', cat: 'ding', fr: 'la trousse',      de: 'das Etui' },
-  { u: 'S', cat: 'ding', fr: 'la table',        de: 'der Tisch' },
-  { u: 'S', cat: 'ding', fr: 'la chaise',       de: 'der Stuhl' },
-  // ── Lernziel 2 · Schulfächer & Wochentage ─────────────────
-  { u: '2', cat: 'fach', fr: 'la matière scolaire', de: 'das Schulfach' },
-  { u: '2', cat: 'fach', fr: 'l’allemand (m)',      de: 'Deutsch' },
-  { u: '2', cat: 'fach', fr: 'le français',         de: 'Französisch' },
-  { u: '2', cat: 'fach', fr: 'l’anglais (m)',       de: 'Englisch' },
-  { u: '2', cat: 'fach', fr: 'les maths, les mathématiques (f pl)', de: 'Mathematik',
+  /* ════════ Unité 1 · Vocabulaire ════════ */
+  { un: 'u1', lz: '1', cat: 'satz', fr: 'Chouette, c’est la rentrée!', de: 'Toll, es ist Schulanfang!' },
+  { un: 'u1', lz: '1', cat: 'satz', fr: 'Zut, c’est la rentrée!',      de: 'Oje, es ist Schulanfang!' },
+  { un: 'u1', lz: 'S', cat: 'ding', fr: 'le livre',        de: 'das Buch' },
+  { un: 'u1', lz: 'S', cat: 'ding', fr: 'la règle',        de: 'das Lineal' },
+  { un: 'u1', lz: 'S', cat: 'ding', fr: 'le classeur',     de: 'der Ordner' },
+  { un: 'u1', lz: 'S', cat: 'ding', fr: 'le cahier',       de: 'das Heft' },
+  { un: 'u1', lz: 'S', cat: 'ding', fr: 'le crayon',       de: 'der Bleistift' },
+  { un: 'u1', lz: 'S', cat: 'ding', fr: 'le stylo',        de: 'der Kugelschreiber' },
+  { un: 'u1', lz: 'S', cat: 'ding', fr: 'la gomme',        de: 'der Gummi' },
+  { un: 'u1', lz: 'S', cat: 'ding', fr: 'le tableau noir', de: 'die Wandtafel' },
+  { un: 'u1', lz: 'S', cat: 'ding', fr: 'la trousse',      de: 'das Etui' },
+  { un: 'u1', lz: 'S', cat: 'ding', fr: 'la table',        de: 'der Tisch' },
+  { un: 'u1', lz: 'S', cat: 'ding', fr: 'la chaise',       de: 'der Stuhl' },
+  { un: 'u1', lz: '2', cat: 'fach', fr: 'la matière scolaire', de: 'das Schulfach' },
+  { un: 'u1', lz: '2', cat: 'fach', fr: 'l’allemand (m)',      de: 'Deutsch' },
+  { un: 'u1', lz: '2', cat: 'fach', fr: 'le français',         de: 'Französisch' },
+  { un: 'u1', lz: '2', cat: 'fach', fr: 'l’anglais (m)',       de: 'Englisch' },
+  { un: 'u1', lz: '2', cat: 'fach', fr: 'les maths, les mathématiques (f pl)', de: 'Mathematik',
     frForms: ['les maths', 'les mathématiques'] },
-  { u: '2', cat: 'tag',  fr: 'les jours (m) de la semaine', de: 'die Wochentage' },
-  { u: '2', cat: 'tag',  fr: 'lundi',    de: 'Montag' },
-  { u: '2', cat: 'tag',  fr: 'mardi',    de: 'Dienstag' },
-  { u: '2', cat: 'tag',  fr: 'mercredi', de: 'Mittwoch' },
-  { u: '2', cat: 'tag',  fr: 'jeudi',    de: 'Donnerstag' },
-  { u: '2', cat: 'tag',  fr: 'vendredi', de: 'Freitag' },
-  { u: '2', cat: 'tag',  fr: 'samedi',   de: 'Samstag' },
-  { u: '2', cat: 'tag',  fr: 'dimanche', de: 'Sonntag' },
-  // ── Lernziel 3 · Schule & Aktivitäten ─────────────────────
-  { u: '3', cat: 'ding', fr: 'une école',       de: 'eine Schule' },
-  { u: '3', cat: 'verb', fr: 'calculer',        de: 'rechnen' },
-  { u: '3', cat: 'verb', fr: 'dessiner',        de: 'zeichnen' },
-  { u: '3', cat: 'verb', fr: 'chanter',         de: 'singen' },
-  { u: '3', cat: 'verb', fr: 'expérimenter',    de: 'experimentieren' },
-  { u: '3', cat: 'verb', fr: 'parler français', de: 'Französisch sprechen' },
+  { un: 'u1', lz: '2', cat: 'tag',  fr: 'les jours (m) de la semaine', de: 'die Wochentage' },
+  { un: 'u1', lz: '2', cat: 'tag',  fr: 'lundi',    de: 'Montag' },
+  { un: 'u1', lz: '2', cat: 'tag',  fr: 'mardi',    de: 'Dienstag' },
+  { un: 'u1', lz: '2', cat: 'tag',  fr: 'mercredi', de: 'Mittwoch' },
+  { un: 'u1', lz: '2', cat: 'tag',  fr: 'jeudi',    de: 'Donnerstag' },
+  { un: 'u1', lz: '2', cat: 'tag',  fr: 'vendredi', de: 'Freitag' },
+  { un: 'u1', lz: '2', cat: 'tag',  fr: 'samedi',   de: 'Samstag' },
+  { un: 'u1', lz: '2', cat: 'tag',  fr: 'dimanche', de: 'Sonntag' },
+  { un: 'u1', lz: '3', cat: 'ding', fr: 'une école',       de: 'eine Schule' },
+  { un: 'u1', lz: '3', cat: 'verb', fr: 'calculer',        de: 'rechnen' },
+  { un: 'u1', lz: '3', cat: 'verb', fr: 'dessiner',        de: 'zeichnen' },
+  { un: 'u1', lz: '3', cat: 'verb', fr: 'chanter',         de: 'singen' },
+  { un: 'u1', lz: '3', cat: 'verb', fr: 'expérimenter',    de: 'experimentieren' },
+  { un: 'u1', lz: '3', cat: 'verb', fr: 'parler français', de: 'Französisch sprechen' },
+
+  /* ════════ Unité 1 · Vocabulaire plus ════════ */
+  { un: 'u1', plus: true, lz: 'S', cat: 'ding', fr: 'le cartable',       de: 'die Schultasche' },
+  { un: 'u1', plus: true, lz: 'S', cat: 'ding', fr: 'un agenda',         de: 'eine Agenda' },
+  { un: 'u1', plus: true, lz: 'S', cat: 'ding', fr: 'les ciseaux (m pl)', de: 'die Schere' },
+  { un: 'u1', plus: true, lz: '2', cat: 'fach', fr: 'le dessin', de: 'das bildnerische Gestalten, die Zeichnung',
+    deForms: ['das bildnerische Gestalten', 'die Zeichnung'] },
+  { un: 'u1', plus: true, lz: '2', cat: 'fach', fr: 'la géo, la géographie', de: 'die Geografie',
+    frForms: ['la géo', 'la géographie', 'la géo, la géographie'] },
+  { un: 'u1', plus: true, lz: '2', cat: 'fach', fr: 'l’histoire (f)', de: 'die Geschichte' },
+  { un: 'u1', plus: true, lz: '2', cat: 'fach', fr: 'la gym, la gymnastique', de: 'das Turnen',
+    frForms: ['la gym', 'la gymnastique', 'la gym, la gymnastique'] },
+  { un: 'u1', plus: true, lz: '2', cat: 'fach', fr: 'les sciences (f pl) de la nature', de: 'die Naturwissenschaften' },
+  { un: 'u1', plus: true, lz: '2', cat: 'fach', fr: 'la musique', de: 'die Musik' },
+  { un: 'u1', plus: true, lz: '2', cat: 'fach', fr: 'ACM (activités créatrices manuelles)', de: 'Handarbeit und Werken',
+    frForms: ['ACM', 'les activités créatrices manuelles', 'activités créatrices manuelles'],
+    tts: 'ACM, les activités créatrices manuelles' },
+  { un: 'u1', plus: true, lz: '3', cat: 'verb', fr: 'parler anglais',      de: 'Englisch sprechen' },
+  { un: 'u1', plus: true, lz: '3', cat: 'verb', fr: 'explorer l’étranger', de: 'das Ausland erkunden' },
+  { un: 'u1', plus: true, lz: '3', cat: 'verb', fr: 'visiter un musée',    de: 'ein Museum besuchen' },
+  { un: 'u1', plus: true, lz: '3', cat: 'verb', fr: 'tricoter',            de: 'stricken' },
+  { un: 'u1', plus: true, lz: '3', cat: 'verb', fr: 'réciter un poème',    de: 'ein Gedicht aufsagen' },
+  { un: 'u1', plus: true, lz: '3', cat: 'verb', fr: 'bricoler',            de: 'basteln' },
+  { un: 'u1', plus: true, lz: '3', cat: 'verb', fr: 'sauter', de: 'springen, hüpfen',
+    deForms: ['springen', 'hüpfen', 'springen, hüpfen'] },
+  { un: 'u1', plus: true, lz: '3', cat: 'verb', fr: 'grimper', de: 'klettern' },
+
+  /* ════════ Unité 2 · Vocabulaire ════════ */
+  { un: 'u2', lz: '1', cat: 'fam', fr: 'la famille', de: 'die Familie' },
+  { un: 'u2', lz: '1', cat: 'fam', fr: 'un/une enfant', de: 'ein Kind',
+    frForms: ['un enfant', 'une enfant', 'un/une enfant'], tts: 'un enfant, une enfant' },
+  { un: 'u2', lz: '2', cat: 'fam', fr: 'la mère, la maman', de: 'die Mutter',
+    frForms: ['la mère', 'la maman', 'la mère, la maman'] },
+  { un: 'u2', lz: '2', cat: 'fam', fr: 'le père, le papa', de: 'der Vater',
+    frForms: ['le père', 'le papa', 'le père, le papa'] },
+  { un: 'u2', lz: '2', cat: 'fam', fr: 'les parents (m pl)', de: 'die Eltern' },
+  { un: 'u2', lz: '2', cat: 'fam', fr: 'la sœur',  de: 'die Schwester' },
+  { un: 'u2', lz: '2', cat: 'fam', fr: 'le frère', de: 'der Bruder' },
+  { un: 'u2', lz: '2', cat: 'fam', fr: 'la grand-mère', de: 'die Grossmutter' },
+  { un: 'u2', lz: '2', cat: 'fam', fr: 'le grand-père', de: 'der Grossvater' },
+  { un: 'u2', lz: '2', cat: 'fam', fr: 'les grands-parents (m pl)', de: 'die Grosseltern' },
+  { un: 'u2', lz: '2', cat: 'fam', fr: 'la tante',   de: 'die Tante' },
+  { un: 'u2', lz: '2', cat: 'fam', fr: 'un oncle',   de: 'ein Onkel' },
+  { un: 'u2', lz: '2', cat: 'fam', fr: 'la cousine', de: 'die Cousine' },
+  { un: 'u2', lz: '2', cat: 'fam', fr: 'le cousin',  de: 'der Cousin' },
+  { un: 'u2', lz: '2', cat: 'fam', fr: 'le bébé', de: 'das Baby, das Kleinkind',
+    deForms: ['das Baby', 'das Kleinkind', 'das Baby, das Kleinkind'] },
+  { un: 'u2', lz: '2', cat: 'fam', fr: 'la fille', de: 'die Tochter, das Mädchen',
+    deForms: ['die Tochter', 'das Mädchen', 'die Tochter, das Mädchen'] },
+  { un: 'u2', lz: '2', cat: 'fam', fr: 'le fils', de: 'der Sohn' },
+  { un: 'u2', lz: '2', cat: 'gram', fr: 'voici, voilà', de: 'hier ist, da ist',
+    frForms: ['voici', 'voilà', 'voici, voilà'], deForms: ['hier ist', 'da ist', 'hier ist, da ist'] },
+  { un: 'u2', lz: '2', cat: 'gram', fr: 'il est, elle est', de: 'er ist, sie ist',
+    frForms: ['il est', 'elle est', 'il est, elle est'], deForms: ['er ist', 'sie ist', 'er ist, sie ist'] },
+  { un: 'u2', lz: '2', cat: 'satz', fr: 'Lionel est le frère de Nathalie.', de: 'Lionel ist der Bruder von Nathalie.' },
+  { un: 'u2', lz: '2', cat: 'gram', fr: 'ils sont, elles sont', de: 'sie sind',
+    frForms: ['ils sont', 'elles sont', 'ils sont, elles sont'] },
+  { un: 'u2', lz: '2', cat: 'gram', fr: 'c’est', de: 'das ist' },
+  { un: 'u2', lz: '2', cat: 'satz', fr: 'C’est ma famille.', de: 'Das ist meine Familie.' },
+  { un: 'u2', lz: '2', cat: 'gram', fr: 'ce sont', de: 'das sind' },
+  { un: 'u2', lz: '2', cat: 'satz', fr: 'Ce sont mes grands-parents.', de: 'Das sind meine Grosseltern.' },
+  { un: 'u2', lz: '2', cat: 'gram', fr: 'qui?', de: 'wer?' },
+  { un: 'u2', lz: '2', cat: 'gram', fr: 'il s’appelle, elle s’appelle', de: 'er heisst, sie heisst',
+    frForms: ['il s’appelle', 'elle s’appelle', 'il s’appelle, elle s’appelle'],
+    deForms: ['er heisst', 'sie heisst', 'er heisst, sie heisst'] },
+  { un: 'u2', lz: '2', cat: 'gram', fr: 'ils s’appellent, elles s’appellent', de: 'sie heissen',
+    frForms: ['ils s’appellent', 'elles s’appellent', 'ils s’appellent, elles s’appellent'] },
+  { un: 'u2', lz: '3', cat: 'ding', fr: 'la fiche personnelle', de: 'der Steckbrief' },
+  { un: 'u2', lz: '3', cat: 'ding', fr: 'le nom',    de: 'der Name' },
+  { un: 'u2', lz: '3', cat: 'ding', fr: 'le prénom', de: 'der Vorname' },
+  { un: 'u2', lz: '3', cat: 'ding', fr: 'la langue', de: 'die Sprache' },
+  { un: 'u2', lz: '3', cat: 'satz', fr: 'Je parle allemand, français et anglais.', de: 'Ich spreche Deutsch, Französisch und Englisch.' },
+
+  /* ════════ Unité 2 · Vocabulaire plus ════════ */
+  { un: 'u2', plus: true, lz: '1', cat: 'fam',  fr: 'un acteur',      de: 'ein Schauspieler' },
+  { un: 'u2', plus: true, lz: '1', cat: 'ding', fr: 'le cinéma muet', de: 'der Stummfilm' },
+  { un: 'u2', plus: true, lz: '1', cat: 'gram', fr: 'marié/mariée', de: 'verheiratet',
+    frForms: ['marié', 'mariée', 'marié/mariée'], tts: 'marié, mariée' },
+  { un: 'u2', plus: true, lz: '1', cat: 'gram', fr: 'onze', de: 'elf' },
+  { un: 'u2', plus: true, lz: '2', cat: 'fam', fr: 'le petit-fils',   de: 'der Enkel' },
+  { un: 'u2', plus: true, lz: '2', cat: 'fam', fr: 'la petite-fille', de: 'die Enkelin' },
+  { un: 'u2', plus: true, lz: '2', cat: 'fam', fr: 'le chien', de: 'der Hund' },
+  { un: 'u2', plus: true, lz: '2', cat: 'fam', fr: 'le chat',  de: 'die Katze' },
+  { un: 'u2', plus: true, lz: '2', cat: 'fam', fr: 'le membre de la famille', de: 'das Familienmitglied' },
+  { un: 'u2', plus: true, lz: '2', cat: 'fam', fr: 'un arbre généalogique',   de: 'ein Stammbaum' },
+  { un: 'u2', plus: true, lz: '3', cat: 'ding', fr: 'le sexe',      de: 'das Geschlecht' },
+  { un: 'u2', plus: true, lz: '3', cat: 'ding', fr: 'l’âge (m)',    de: 'das Alter' },
+  { un: 'u2', plus: true, lz: '3', cat: 'ding', fr: 'une adresse',  de: 'eine Adresse' },
+  { un: 'u2', plus: true, lz: '3', cat: 'ding', fr: 'le pays',      de: 'das Land' },
+  { un: 'u2', plus: true, lz: '3', cat: 'ding', fr: 'la signature', de: 'die Unterschrift' },
+  { un: 'u2', plus: true, lz: '3', cat: 'fach', fr: 'le néerlandais', de: 'Niederländisch' },
+  { un: 'u2', plus: true, lz: '3', cat: 'fach', fr: 'le suédois',     de: 'Schwedisch' },
+  { un: 'u2', plus: true, lz: '3', cat: 'fach', fr: 'l’italien (m)',  de: 'Italienisch' },
+  { un: 'u2', plus: true, lz: '3', cat: 'fach', fr: 'l’espagnol (m)', de: 'Spanisch' },
+  { un: 'u2', plus: true, lz: '3', cat: 'ding', fr: 'le drapeau', de: 'die Fahne' },
+
+  /* ════════ Unité 3 · Vocabulaire ════════ */
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'le loisir', de: 'die Freizeitbeschäftigung' },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'un ordinateur', de: 'ein Computer' },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'la télé',    de: 'der Fernseher' },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'la console', de: 'die Spielkonsole' },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'lire', de: 'lesen' },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'le foot, faire du foot', de: 'Fussball (Spiel), Fussball spielen',
+    frForms: ['le foot', 'faire du foot', 'le foot, faire du foot'],
+    deForms: ['Fussball', 'Fussball spielen', 'Fussball, Fussball spielen'] },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'le vélo', de: 'das Velo, das Fahrrad',
+    deForms: ['das Velo', 'das Fahrrad', 'das Velo, das Fahrrad'] },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'le ski', de: 'der Ski' },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'l’unihockey (m), faire de l’unihockey', de: 'das Unihockey, Unihockey spielen',
+    frForms: ['l’unihockey', 'faire de l’unihockey', 'l’unihockey, faire de l’unihockey'],
+    deForms: ['das Unihockey', 'Unihockey spielen', 'das Unihockey, Unihockey spielen'] },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'danser', de: 'tanzen' },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'nager',  de: 'schwimmen' },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'la guitare, jouer de la guitare', de: 'die Gitarre, Gitarre spielen',
+    frForms: ['la guitare', 'jouer de la guitare', 'la guitare, jouer de la guitare'],
+    deForms: ['die Gitarre', 'Gitarre spielen', 'die Gitarre, Gitarre spielen'] },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'la flûte', de: 'die Flöte' },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'le piano, jouer du piano', de: 'das Klavier, Klavier spielen',
+    frForms: ['le piano', 'jouer du piano', 'le piano, jouer du piano'],
+    deForms: ['das Klavier', 'Klavier spielen', 'das Klavier, Klavier spielen'] },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'jouer dehors', de: 'draussen spielen' },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'un animal, les animaux (m pl)', de: 'ein Tier, die Tiere',
+    frForms: ['un animal', 'les animaux', 'un animal, les animaux'],
+    deForms: ['ein Tier', 'die Tiere', 'ein Tier, die Tiere'] },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'le bricolage', de: 'das Basteln' },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'écouter de la musique', de: 'Musik hören' },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'faire la cuisine',  de: 'kochen' },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'faire du shopping', de: 'shoppen' },
+  { un: 'u3', lz: '1', cat: 'hobby', fr: 'rencontrer des amis/amies', de: 'Freunde/Freundinnen treffen',
+    frForms: ['rencontrer des amis', 'rencontrer des amies', 'rencontrer des amis/amies'],
+    deForms: ['Freunde treffen', 'Freundinnen treffen', 'Freunde/Freundinnen treffen'],
+    tts: 'rencontrer des amis' },
+  { un: 'u3', lz: '1', cat: 'gram', fr: 'aimer, j’aime', de: 'lieben, ich liebe',
+    frForms: ['aimer', 'j’aime', 'aimer, j’aime'], deForms: ['lieben', 'ich liebe', 'lieben, ich liebe'] },
+  { un: 'u3', lz: '1', cat: 'gram', fr: 'adorer, j’adore', de: 'sehr gerne haben, ich habe sehr gerne',
+    frForms: ['adorer', 'j’adore', 'adorer, j’adore'],
+    deForms: ['sehr gerne haben', 'ich habe sehr gerne', 'sehr gerne haben, ich habe sehr gerne'] },
+  { un: 'u3', lz: '1', cat: 'gram', fr: 'ma passion, c’est...', de: 'meine Leidenschaft ist ...',
+    frForms: ['ma passion, c’est'] },
+  { un: 'u3', lz: '1', cat: 'gram', fr: 'mon hobby, c’est...', de: 'mein Hobby ist ...',
+    frForms: ['mon hobby, c’est'] },
+  { un: 'u3', lz: '1', cat: 'gram', fr: 'je suis fan de...', de: 'ich bin Fan von ...',
+    frForms: ['je suis fan de'] },
+  { un: 'u3', lz: '3', cat: 'ding', fr: 'le nombre', de: 'die Zahl' },
+  { un: 'u3', lz: '3', cat: 'fam', fr: 'un/une élève', de: 'ein Schüler, eine Schülerin',
+    frForms: ['un élève', 'une élève', 'un/une élève'],
+    deForms: ['ein Schüler', 'eine Schülerin', 'ein Schüler, eine Schülerin'],
+    tts: 'un élève, une élève' },
+  { un: 'u3', lz: '3', cat: 'fam', fr: 'le garçon', de: 'der Knabe' },
+  { un: 'u3', lz: '3', cat: 'fam', fr: 'la fille', de: 'das Mädchen, die Tochter',
+    deForms: ['das Mädchen', 'die Tochter', 'das Mädchen, die Tochter'] },
+
+  /* ════════ Unité 3 · Vocabulaire plus ════════ */
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'les médias (m pl)', de: 'die Medien' },
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'la BD (la bande dessinée)', de: 'der Comic',
+    frForms: ['la BD', 'la bande dessinée'], tts: 'la BD, la bande dessinée' },
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'l’équitation (f), faire de l’équitation', de: 'das Reiten, reiten',
+    frForms: ['l’équitation', 'faire de l’équitation', 'l’équitation, faire de l’équitation'],
+    deForms: ['das Reiten', 'reiten', 'das Reiten, reiten'] },
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'les acrobaties (f pl), faire des acrobaties', de: 'die Akrobatik, Akrobatik machen',
+    frForms: ['les acrobaties', 'faire des acrobaties', 'les acrobaties, faire des acrobaties'],
+    deForms: ['die Akrobatik', 'Akrobatik machen', 'die Akrobatik, Akrobatik machen'] },
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'la grimpe', de: 'das Klettern' },
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'le tennis de table',   de: 'das Tischtennis' },
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'le hockey sur glace',  de: 'das Eishockey' },
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'la batterie', de: 'das Schlagzeug' },
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'le violon', de: 'die Geige, die Violine',
+    deForms: ['die Geige', 'die Violine', 'die Geige, die Violine'] },
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'le cirque', de: 'der Zirkus' },
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'la construction', de: 'der Modellbau' },
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'la pêche, pêcher', de: 'das Fischen, fischen',
+    frForms: ['la pêche', 'pêcher', 'la pêche, pêcher'], deForms: ['das Fischen', 'fischen', 'das Fischen, fischen'] },
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'les échecs (m pl), jouer aux échecs', de: 'das Schachspiel, Schach spielen',
+    frForms: ['les échecs', 'jouer aux échecs', 'les échecs, jouer aux échecs'],
+    deForms: ['das Schachspiel', 'Schach spielen', 'das Schachspiel, Schach spielen'] },
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'le théâtre, jouer du théâtre', de: 'das Theater, Theater spielen',
+    frForms: ['le théâtre', 'jouer du théâtre', 'le théâtre, jouer du théâtre'],
+    deForms: ['das Theater', 'Theater spielen', 'das Theater, Theater spielen'] },
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'être avec mes potes', de: 'mit meinen Freunden sein' },
+  { un: 'u3', plus: true, lz: '1', cat: 'hobby', fr: 'garder des enfants',  de: 'Kinder hüten' },
+  { un: 'u3', plus: true, lz: '1', cat: 'gram', fr: 'j’aime beaucoup...', de: 'ich liebe sehr ...',
+    frForms: ['j’aime beaucoup'] },
+  { un: 'u3', plus: true, lz: '1', cat: 'gram', fr: 'mon sport favori, c’est...', de: 'mein Lieblingssport ist ...',
+    frForms: ['mon sport favori, c’est'] },
+  { un: 'u3', plus: true, lz: '1', cat: 'gram', fr: 'mes hobbies, ce sont...', de: 'meine Hobbys sind ...',
+    frForms: ['mes hobbies, ce sont'] },
+  { un: 'u3', plus: true, lz: '1', cat: 'gram', fr: 'détester, je déteste', de: 'hassen, ich hasse',
+    frForms: ['détester', 'je déteste', 'détester, je déteste'], deForms: ['hassen', 'ich hasse', 'hassen, ich hasse'] },
+
+  /* ════════ Unité 4 · Vocabulaire ════════ */
+  { un: 'u4', lz: '1', cat: 'essen', fr: 'un ingrédient', de: 'eine Zutat' },
+  { un: 'u4', lz: '1', cat: 'essen', fr: 'un ananas', de: 'eine Ananas' },
+  { un: 'u4', lz: '1', cat: 'essen', fr: 'le raisin vert/bleu', de: 'die grüne/blaue Traube',
+    frForms: ['le raisin vert', 'le raisin bleu', 'le raisin vert/bleu'],
+    deForms: ['die grüne Traube', 'die blaue Traube', 'die grüne/blaue Traube'],
+    tts: 'le raisin vert ou bleu' },
+  { un: 'u4', lz: '1', cat: 'essen', fr: 'la fraise', de: 'die Erdbeere' },
+  { un: 'u4', lz: '1', cat: 'essen', fr: 'le champignon blanc', de: 'der weisse Champignon' },
+  { un: 'u4', lz: '1', cat: 'essen', fr: 'la rondelle de concombre', de: 'die Gurkenscheibe' },
+  { un: 'u4', lz: '1', cat: 'essen', fr: 'la carotte', de: 'die Karotte' },
+  { un: 'u4', lz: '1', cat: 'essen', fr: 'la poire',   de: 'die Birne' },
+  { un: 'u4', lz: '1', cat: 'essen', fr: 'la feuille d’ananas', de: 'das Ananasblatt' },
+  { un: 'u4', lz: '1', cat: 'essen', fr: 'la tomate (cerise)', de: 'die (Kirsch-)Tomate',
+    frForms: ['la tomate', 'la tomate cerise'],
+    deForms: ['die Tomate', 'die Kirschtomate', 'die Kirsch-Tomate'] },
+  { un: 'u4', lz: '1', cat: 'essen', fr: 'un peu de persil', de: 'ein wenig Petersilie' },
+  { un: 'u4', lz: '2', cat: 'gesicht', fr: 'le visage',   de: 'das Gesicht' },
+  { un: 'u4', lz: '2', cat: 'gesicht', fr: 'une oreille', de: 'ein Ohr' },
+  { un: 'u4', lz: '2', cat: 'gesicht', fr: 'les yeux (m pl), un œil', de: 'die Augen, ein Auge',
+    frForms: ['les yeux', 'un œil', 'les yeux, un œil'],
+    deForms: ['die Augen', 'ein Auge', 'die Augen, ein Auge'] },
+  { un: 'u4', lz: '2', cat: 'gesicht', fr: 'les cheveux (m pl)', de: 'die Haare' },
+  { un: 'u4', lz: '2', cat: 'gesicht', fr: 'la tête',   de: 'der Kopf' },
+  { un: 'u4', lz: '2', cat: 'gesicht', fr: 'le nez',    de: 'die Nase' },
+  { un: 'u4', lz: '2', cat: 'gesicht', fr: 'la bouche', de: 'der Mund' },
+  { un: 'u4', lz: '2', cat: 'essen', fr: 'la rondelle de citron', de: 'die Zitronenscheibe' },
+  { un: 'u4', lz: '2', cat: 'satz', fr: 'Pour le nez, je prends une carotte.', de: 'Für die Nase nehme ich eine Karotte.' },
+  { un: 'u4', lz: '2', cat: 'satz', fr: 'C’est quoi?', de: 'Was ist das?' },
+  { un: 'u4', lz: '2', cat: 'essen', fr: 'la banane', de: 'die Banane' },
+  { un: 'u4', lz: '2', cat: 'essen', fr: 'les nouilles (f pl)', de: 'die Nudeln' },
+  { un: 'u4', lz: '3', cat: 'satz', fr: 'Pique un raisin.', de: 'Spiesse eine Traube auf.' },
+  { un: 'u4', lz: '3', cat: 'satz', fr: 'Fixe le raisin sur la poire.', de: 'Befestige die Traube an der Birne.' },
+  { un: 'u4', lz: '3', cat: 'satz', fr: 'Coupe l’ananas (en deux).', de: 'Schneide (halbiere) die Ananas.' },
+  { un: 'u4', lz: '3', cat: 'satz', fr: 'Pose la fraise sur l’assiette.', de: 'Stelle/Lege die Erdbeere auf den Teller.' },
+  { un: 'u4', lz: '3', cat: 'satz', fr: 'Prends une poire pour le corps.', de: 'Nimm eine Birne für den Körper.' },
+  { un: 'u4', lz: 'S', cat: 'satz', fr: 'Tu coupes. Coupe.', de: 'Du schneidest. Schneide!' },
+  { un: 'u4', lz: 'S', cat: 'satz', fr: 'Vous coupez. Coupez.', de: 'Ihr schneidet. Schneidet!' },
+  { un: 'u4', lz: '4', cat: 'ding', fr: 'un alphabet', de: 'ein Alphabet' },
+  { un: 'u4', lz: '4', cat: 'essen', fr: 'la soupe', de: 'die Suppe' },
+  { un: 'u4', lz: '4', cat: 'ding', fr: 'la lettre', de: 'der Buchstabe' },
+
+  /* ════════ Unité 4 · Vocabulaire plus ════════ */
+  { un: 'u4', plus: true, lz: '1', cat: 'ding', fr: 'la souris',   de: 'die Maus' },
+  { un: 'u4', plus: true, lz: '1', cat: 'ding', fr: 'la voiture',  de: 'das Auto' },
+  { un: 'u4', plus: true, lz: '1', cat: 'ding', fr: 'la chenille', de: 'die Raupe' },
+  { un: 'u4', plus: true, lz: '1', cat: 'ding', fr: 'le hérisson', de: 'der Igel' },
+  { un: 'u4', plus: true, lz: '1', cat: 'essen', fr: 'la demi-rondelle de concombre', de: 'die halbe Gurkenscheibe' },
+  { un: 'u4', plus: true, lz: '1', cat: 'essen', fr: 'la tige de ciboulette', de: 'der Schnittlauchhalm' },
+  { un: 'u4', plus: true, lz: '1', cat: 'essen', fr: 'le clou de girofle',    de: 'die Gewürznelke' },
+  { un: 'u4', plus: true, lz: '1', cat: 'essen', fr: 'la groseille (rouge)', de: 'die Johannisbeere',
+    frForms: ['la groseille', 'la groseille rouge'] },
+  { un: 'u4', plus: true, lz: '1', cat: 'essen', fr: 'le raisin sec', de: 'die Rosine (getrocknete Traube)',
+    deForms: ['die Rosine', 'die getrocknete Traube'] },
+  { un: 'u4', plus: true, lz: '2', cat: 'gesicht', fr: 'les parties du visage', de: 'die Gesichtsteile' },
+  { un: 'u4', plus: true, lz: '2', cat: 'essen', fr: 'le bouquet de brocoli',  de: 'das Brokkoliröschen' },
+  { un: 'u4', plus: true, lz: '2', cat: 'essen', fr: 'le morceau de fromage',  de: 'das Stück Käse' },
+  { un: 'u4', plus: true, lz: '2', cat: 'essen', fr: 'le morceau de pastèque', de: 'das Stück Wassermelone' },
+  { un: 'u4', plus: true, lz: '3', cat: 'satz', fr: 'Plante des cure-dents sur le dos.', de: 'Pflanze Zahnstocher in den Rücken ein.' },
+  { un: 'u4', plus: true, lz: '3', cat: 'satz', fr: 'Fixe le raisin à l’aide d’un cure-dent.', de: 'Befestige die Traube mithilfe eines Zahnstochers.' },
+  { un: 'u4', plus: true, lz: '3', cat: 'gesicht', fr: 'la patte', de: 'die Pfote' },
+  { un: 'u4', plus: true, lz: '3', cat: 'satz', fr: 'Insère les feuilles dans la poire.', de: 'Stecke die Blätter in die Birne.' },
+  { un: 'u4', plus: true, lz: '3', cat: 'gram', fr: 'pour la queue', de: 'für den Schwanz' },
+  { un: 'u4', plus: true, lz: '3', cat: 'satz', fr: 'Enfile des raisins sur un fil de métal.', de: 'Ziehe Trauben auf einen Metallfaden auf.' },
+  { un: 'u4', plus: true, lz: '3', cat: 'satz', fr: 'Prends la pâte bleue/verte/rouge.', de: 'Nimm die blaue/grüne/rote Knete.',
+    tts: 'Prends la pâte bleue, verte ou rouge.' },
+  { un: 'u4', plus: true, lz: '3', cat: 'satz', fr: 'Forme une grande/petite boule pour le corps.', de: 'Forme eine grosse/kleine Kugel für den Körper.',
+    tts: 'Forme une grande ou petite boule pour le corps.' },
+  { un: 'u4', plus: true, lz: '4', cat: 'essen', fr: 'le pain',  de: 'das Brot' },
+  { un: 'u4', plus: true, lz: '4', cat: 'essen', fr: 'la pomme', de: 'der Apfel' },
+  { un: 'u4', plus: true, lz: '4', cat: 'essen', fr: 'la pomme de terre', de: 'die Kartoffel' },
 ];
 
 /* Aufnahmen einer echten französischen Stimme liegen in french/audio/.
    Diese Liste pflegt `node french/generate-audio.mjs` — nicht von Hand ändern.
    Fehlt eine Aufnahme, nutzt die App automatisch die Browser-Stimme. */
-const AUDIO = /*AUDIO-MAP*/{"chouette-c-est-la-rentree":1,"zut-c-est-la-rentree":1,"le-livre":1,"la-regle":1,"le-classeur":1,"le-cahier":1,"le-crayon":1,"le-stylo":1,"la-gomme":1,"le-tableau-noir":1,"la-trousse":1,"la-table":1,"la-chaise":1,"la-matiere-scolaire":1,"l-allemand-m":1,"le-francais":1,"l-anglais-m":1,"les-maths-les-mathematiques-f-pl":1,"les-jours-m-de-la-semaine":1,"lundi":1,"mardi":1,"mercredi":1,"jeudi":1,"vendredi":1,"samedi":1,"dimanche":1,"une-ecole":1,"calculer":1,"dessiner":1,"chanter":1,"experimenter":1,"parler-francais":1}/*AUDIO-MAP-END*/;
+const AUDIO = /*AUDIO-MAP*/{"chouette-c-est-la-rentree":1,"zut-c-est-la-rentree":1,"le-livre":1,"la-regle":1,"le-classeur":1,"le-cahier":1,"le-crayon":1,"le-stylo":1,"la-gomme":1,"le-tableau-noir":1,"la-trousse":1,"la-table":1,"la-chaise":1,"la-matiere-scolaire":1,"l-allemand-m":1,"le-francais":1,"l-anglais-m":1,"les-maths-les-mathematiques-f-pl":1,"les-jours-m-de-la-semaine":1,"lundi":1,"mardi":1,"mercredi":1,"jeudi":1,"vendredi":1,"samedi":1,"dimanche":1,"une-ecole":1,"calculer":1,"dessiner":1,"chanter":1,"experimenter":1,"parler-francais":1,"le-cartable":1,"un-agenda":1,"les-ciseaux-m-pl":1,"le-dessin":1,"la-geo-la-geographie":1,"l-histoire-f":1,"la-gym-la-gymnastique":1,"les-sciences-f-pl-de-la-nature":1,"la-musique":1,"acm-activites-creatrices-manuelles":1,"parler-anglais":1,"explorer-l-etranger":1,"visiter-un-musee":1,"tricoter":1,"reciter-un-poeme":1,"bricoler":1,"sauter":1,"grimper":1,"la-famille":1,"un-une-enfant":1,"la-mere-la-maman":1,"le-pere-le-papa":1,"les-parents-m-pl":1,"la-soeur":1,"le-frere":1,"la-grand-mere":1,"le-grand-pere":1,"les-grands-parents-m-pl":1,"la-tante":1,"un-oncle":1,"la-cousine":1,"le-cousin":1,"le-bebe":1,"la-fille":1,"le-fils":1,"voici-voila":1,"il-est-elle-est":1,"lionel-est-le-frere-de-nathalie":1,"ils-sont-elles-sont":1,"c-est":1,"c-est-ma-famille":1,"ce-sont":1,"ce-sont-mes-grands-parents":1,"qui":1,"il-s-appelle-elle-s-appelle":1,"ils-s-appellent-elles-s-appellent":1,"la-fiche-personnelle":1,"le-nom":1,"le-prenom":1,"la-langue":1,"je-parle-allemand-francais-et-anglais":1,"un-acteur":1,"le-cinema-muet":1,"marie-mariee":1,"onze":1,"le-petit-fils":1,"la-petite-fille":1,"le-chien":1,"le-chat":1,"le-membre-de-la-famille":1,"un-arbre-genealogique":1,"le-sexe":1,"l-age-m":1,"une-adresse":1,"le-pays":1,"la-signature":1,"le-neerlandais":1,"le-suedois":1,"l-italien-m":1,"l-espagnol-m":1,"le-drapeau":1,"le-loisir":1,"un-ordinateur":1,"la-tele":1,"la-console":1,"lire":1,"le-foot-faire-du-foot":1,"le-velo":1,"le-ski":1,"l-unihockey-m-faire-de-l-unihockey":1,"danser":1,"nager":1,"la-guitare-jouer-de-la-guitare":1,"la-flute":1,"le-piano-jouer-du-piano":1,"jouer-dehors":1,"un-animal-les-animaux-m-pl":1,"le-bricolage":1,"ecouter-de-la-musique":1,"faire-la-cuisine":1,"faire-du-shopping":1,"rencontrer-des-amis-amies":1,"aimer-j-aime":1,"adorer-j-adore":1,"ma-passion-c-est":1,"mon-hobby-c-est":1,"je-suis-fan-de":1,"le-nombre":1,"un-une-eleve":1,"le-garcon":1,"les-medias-m-pl":1,"la-bd-la-bande-dessinee":1,"l-equitation-f-faire-de-l-equitation":1,"les-acrobaties-f-pl-faire-des-acrobaties":1,"la-grimpe":1,"le-tennis-de-table":1,"le-hockey-sur-glace":1,"la-batterie":1,"le-violon":1,"le-cirque":1,"la-construction":1,"la-peche-pecher":1,"les-echecs-m-pl-jouer-aux-echecs":1,"le-theatre-jouer-du-theatre":1,"etre-avec-mes-potes":1,"garder-des-enfants":1,"j-aime-beaucoup":1,"mon-sport-favori-c-est":1,"mes-hobbies-ce-sont":1,"detester-je-deteste":1,"un-ingredient":1,"un-ananas":1,"le-raisin-vert-bleu":1,"la-fraise":1,"le-champignon-blanc":1,"la-rondelle-de-concombre":1,"la-carotte":1,"la-poire":1,"la-feuille-d-ananas":1,"la-tomate-cerise":1,"un-peu-de-persil":1,"le-visage":1,"une-oreille":1,"les-yeux-m-pl-un-oeil":1,"les-cheveux-m-pl":1,"la-tete":1,"le-nez":1,"la-bouche":1,"la-rondelle-de-citron":1,"pour-le-nez-je-prends-une-carotte":1,"c-est-quoi":1,"la-banane":1,"les-nouilles-f-pl":1,"pique-un-raisin":1,"fixe-le-raisin-sur-la-poire":1,"coupe-l-ananas-en-deux":1,"pose-la-fraise-sur-l-assiette":1,"prends-une-poire-pour-le-corps":1,"tu-coupes-coupe":1,"vous-coupez-coupez":1,"un-alphabet":1,"la-soupe":1,"la-lettre":1,"la-souris":1,"la-voiture":1,"la-chenille":1,"le-herisson":1,"la-demi-rondelle-de-concombre":1,"la-tige-de-ciboulette":1,"le-clou-de-girofle":1,"la-groseille-rouge":1,"le-raisin-sec":1,"les-parties-du-visage":1,"le-bouquet-de-brocoli":1,"le-morceau-de-fromage":1,"le-morceau-de-pasteque":1,"plante-des-cure-dents-sur-le-dos":1,"fixe-le-raisin-a-l-aide-d-un-cure-dent":1,"la-patte":1,"insere-les-feuilles-dans-la-poire":1,"pour-la-queue":1,"enfile-des-raisins-sur-un-fil-de-metal":1,"prends-la-pate-bleue-verte-rouge":1,"forme-une-grande-petite-boule-pour-le-corps":1,"le-pain":1,"la-pomme":1,"la-pomme-de-terre":1}/*AUDIO-MAP-END*/;
 
 /* ================= Utilities ================= */
 
@@ -628,15 +931,24 @@ function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
 // Anzeige-Klammern wie "(m)" / "(f pl)" entfernen (für Vorlesen + Tippen)
 function stripParens(s) { return s.replace(/\s*\([^)]*\)/g, '').replace(/\s+/g, ' ').trim(); }
 
+const BY_ID = {};
+const GROUPS = {};        // Gruppen-Schlüssel → {key, un, plus, lz, words}
+const UNITE_GROUPS = {};  // Unité → [Gruppen-Schlüssel in Buch-Reihenfolge]
 for (const w of VOCAB) {
-  w.id = w.fr;                      // stabiler Schlüssel für den Fortschritt
-  w.tts = stripParens(w.fr);        // was die französische Stimme spricht
+  w.id = BY_ID[w.fr] ? w.fr + ' (' + w.un + ')' : w.fr;   // stabiler Schlüssel für den Fortschritt
+  BY_ID[w.id] = w;
+  w.tts = w.tts || stripParens(w.fr);   // was die französische Stimme spricht
   w.forms = (w.frForms && w.frForms.slice()) || [stripParens(w.fr)];
-  w.frMain = w.forms[0];            // Hauptform für Quiz-Antwortknöpfe
+  w.deTargets = (w.deForms && w.deForms.slice()) || [w.de];
+  w.frMain = w.forms[0];                // Hauptform für Quiz-Antwortknöpfe
+  w.g = w.un + (w.plus ? 'P' : '') + '-' + w.lz;
+  if (!GROUPS[w.g]) {
+    GROUPS[w.g] = { key: w.g, un: w.un, plus: !!w.plus, lz: w.lz, words: [] };
+    (UNITE_GROUPS[w.un] = UNITE_GROUPS[w.un] || []).push(w.g);
+  }
+  GROUPS[w.g].words.push(w);
 }
-const BY_ID = Object.fromEntries(VOCAB.map(w => [w.id, w]));
-const UNIT_WORDS = {};
-for (const u of UNIT_ORDER) UNIT_WORDS[u] = VOCAB.filter(w => w.u === u);
+function groupLabel(g) { return 'Lernziel ' + g.lz; }
 
 /* ================= Antwort-Bewertung =================
    Stufen: 'right' (richtig) · 'almost' (fast richtig: zählt als richtig,
@@ -646,7 +958,7 @@ function norm(s) {
   return String(s).normalize('NFC').toLowerCase()
     .replace(/[’ʼ`´]/g, "'")
     .replace(/\s*\([^)]*\)/g, ' ')
-    .replace(/[.,!?;:«»""_]/g, ' ')
+    .replace(/[.,!?;:«»""_/\-…]/g, ' ')
     .replace(/ß/g, 'ss')
     .replace(/\s+/g, ' ').trim();
 }
@@ -688,11 +1000,11 @@ function editDist1(a, b) {
 const ALL_TARGETS = { fr: new Set(), de: new Set() };
 for (const w of VOCAB) {
   for (const f of w.forms) ALL_TARGETS.fr.add(fold(norm(f)));
-  ALL_TARGETS.de.add(fold(norm(w.de)));
+  for (const f of w.deTargets) ALL_TARGETS.de.add(fold(norm(f)));
 }
 
 function grade(userRaw, w, lang) {
-  const targets = lang === 'fr' ? w.forms : [w.de];
+  const targets = lang === 'fr' ? w.forms : w.deTargets;
   const display = lang === 'fr' ? w.frMain : w.de;
   const u = norm(userRaw);
   if (!u) return { v: 'wrong' };
@@ -711,7 +1023,7 @@ function grade(userRaw, w, lang) {
   for (const t0 of targets) {
     const t = norm(t0);
     const tf = fold(t);
-    const disp = lang === 'fr' ? t0 : display;   // im Hinweis die getroffene Form zeigen
+    const disp = t0;   // im Hinweis die getroffene Form zeigen
     // nur Akzente/Umlaute falsch
     if (uf === tf) return { v: 'almost', note: 'Achte auf die Akzente: ' + disp };
     // Artikel vergessen
@@ -739,13 +1051,13 @@ function grade(userRaw, w, lang) {
 const KEY = 'axiom.french.v1';
 function freshState() {
   return {
-    v: 1,
+    v: 2,
     words: {},                                     // id → {box,due,seen,right,wrong,recent,lp,ld}
-    stars: {},                                     // unit → 0..3 (Bestwert, sinkt nie)
+    stars: {},                                     // Unité → 0..3 (Bestwert, sinkt nie)
     streak: { count: 0, last: '', rekord: 0 },
     day: { date: '', rounds: 0, cards: 0 },
     hints: {},                                     // einmalige Hinweise
-    settings: { sounds: true, accent: 'coral', voiceName: '', voiceLang: '' },
+    settings: { sounds: true, accent: 'coral', voiceName: '', voiceLang: '', sel: {} },
   };
 }
 let state = loadState();
@@ -756,7 +1068,14 @@ function loadState() {
     if (!raw) return freshState();
     const s = JSON.parse(raw);
     if (!s || typeof s !== 'object' || typeof s.v !== 'number') return freshState();
-    if (s.v > 1) return freshState();       // unbekannte Zukunftsversion
+    if (s.v === 1) {
+      // v1: Sterne waren pro Lernziel der alten flachen Liste (heute Unité 1)
+      const old = s.stars || {};
+      const best = Math.max(0, ...['1', 'S', '2', '3'].map(k => old[k] || 0));
+      s.stars = best > 0 ? { u1: best } : {};
+      s.v = 2;
+    }
+    if (s.v !== 2) return freshState();     // unbekannte Zukunftsversion
     const f = freshState();
     return {
       ...f, ...s,
@@ -765,11 +1084,31 @@ function loadState() {
       streak: { ...f.streak, ...(s.streak || {}) },
       day: { ...f.day, ...(s.day || {}) },
       hints: s.hints || {},
-      settings: { ...f.settings, ...(s.settings || {}) },
+      settings: { ...f.settings, ...(s.settings || {}), sel: (s.settings && s.settings.sel) || {} },
     };
   } catch (e) {
     return freshState();
   }
+}
+
+/* ---------- Lernziel-Auswahl pro Unité ---------- */
+
+function defaultSel(un) {
+  return (UNITE_GROUPS[un] || []).filter(k => !GROUPS[k].plus);   // Standard: alles ohne «plus»
+}
+function getSel(un) {
+  const raw = state.settings.sel && state.settings.sel[un];
+  if (!Array.isArray(raw)) return defaultSel(un);
+  return raw.filter(k => GROUPS[k] && GROUPS[k].un === un);
+}
+function setSel(un, arr) {
+  (state.settings.sel = state.settings.sel || {})[un] = arr;
+  save();
+}
+function selWords(un) {
+  const out = [];
+  for (const k of getSel(un)) out.push(...GROUPS[k].words);
+  return out;
 }
 let saveTimer = null;
 function save() {
@@ -969,7 +1308,7 @@ function audioSlug(s) {
     .replace(/œ/g, 'oe').replace(/æ/g, 'ae')
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
-function hasFile(w) { return !!AUDIO[audioSlug(w.id)]; }
+function hasFile(w) { return !!AUDIO[audioSlug(w.fr)]; }
 // Kann dieses Wort (bzw. überhaupt etwas) vorgelesen werden?
 function canHear(w) {
   return w ? (hasFile(w) || ttsOk()) : (Object.keys(AUDIO).length > 0 || ttsOk());
@@ -999,7 +1338,7 @@ function playWord(w, opts) {
   el.onended = () => done(false);
   el.onerror = () => done(true);            // Datei fehlt/kaputt → Browser-Stimme
   el.onplaying = opts.onstart || null;
-  el.src = 'audio/' + audioSlug(w.id) + '.mp3';
+  el.src = 'audio/' + audioSlug(w.fr) + '.mp3';
   const p = el.play();
   if (p && p.catch) p.catch(() => done(true));
 }
@@ -1172,8 +1511,11 @@ const IC = {
   uS: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 4 6 6-9.5 9.5a2.1 2.1 0 0 1-1.5.6H5v-4a2.1 2.1 0 0 1 .6-1.5z"/><path d="m12 6 6 6"/></svg>',
   u2: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4M16 3v4"/></svg>',
   u3: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V11l9-6 9 6v10"/><path d="M9 21v-6h6v6"/><path d="M3 21h18"/></svg>',
+  fam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7.5" r="3"/><path d="M3.5 20v-1.5a5 5 0 0 1 5-5h1a5 5 0 0 1 5 5V20"/><circle cx="17.5" cy="9" r="2.4"/><path d="M16.5 20v-1a4 4 0 0 1 4.5-4"/></svg>',
+  ball: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m12 7.5 4.3 3.1-1.7 5H9.4l-1.7-5z"/><path d="M12 3v4.5M4 9.5l4.3 1.1M20 9.5l-4.3 1.1M6.8 20l2.6-4.4M17.2 20l-2.6-4.4"/></svg>',
+  apple: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8.2c-1.6-1.7-4.2-2-5.9-.5-2.2 2-2.5 5.3-1.1 8.2C6.1 18.3 8 20.4 9.8 20.4c.9 0 1.4-.5 2.2-.5s1.3.5 2.2.5c1.8 0 3.7-2.1 4.8-4.5 1.4-2.9 1.1-6.2-1.1-8.2-1.7-1.5-4.3-1.2-5.9.5z"/><path d="M12 8.2c0-2.2 1.2-3.7 3.2-4.7"/></svg>',
 };
-const UNIT_ICON = { '1': IC.u1, 'S': IC.uS, '2': IC.u2, '3': IC.u3 };
+const UNITE_ICON = { u1: IC.uS, u2: IC.fam, u3: IC.ball, u4: IC.apple };
 
 function starRow(n, cls) {
   let h = '<span class="stars ' + (cls || '') + '" aria-label="' + n + ' von 3 Sternen">';
@@ -1255,13 +1597,13 @@ function renderHome() {
   const doneToday = practicedToday();
 
   let unitsHtml = '';
-  for (const uk of UNIT_ORDER) {
-    const U = UNITS[uk];
-    const wordsU = UNIT_WORDS[uk];
+  for (const uk of UNITE_ORDER) {
+    const U = UNITES[uk];
+    const wordsU = VOCAB.filter(w => w.un === uk);
     const learned = wordsU.filter(w => { const s = state.words[w.id]; return s && isLearned(s); }).length;
     unitsHtml +=
       '<button class="unit-card" data-unit="' + uk + '">' +
-        '<span class="glyph" style="background:' + U.tint + ';color:' + U.deep + '">' + UNIT_ICON[uk] + '</span>' +
+        '<span class="glyph" style="background:' + U.tint + ';color:' + U.deep + '">' + UNITE_ICON[uk] + '</span>' +
         '<span class="u-info">' +
           '<span class="u-name">' + esc(U.name) + '</span>' +
           '<span class="u-sub" style="display:block">' + esc(U.sub) + '</span>' +
@@ -1321,10 +1663,35 @@ function renderHome() {
 /* ================= Lernziel-Seite ================= */
 
 function renderUnit(uk) {
-  const U = UNITS[uk];
-  const wordsU = UNIT_WORDS[uk];
-  const learned = wordsU.filter(w => { const s = state.words[w.id]; return s && isLearned(s); }).length;
-  const pct = wordsU.length ? Math.round(learned / wordsU.length * 100) : 0;
+  const U = UNITES[uk];
+  const sel = new Set(getSel(uk));
+  const allKeys = UNITE_GROUPS[uk] || [];
+  const baseKeys = allKeys.filter(k => !GROUPS[k].plus);
+  const plusKeys = allKeys.filter(k => GROUPS[k].plus);
+  const chosen = selWords(uk);
+  const learned = chosen.filter(w => { const s = state.words[w.id]; return s && isLearned(s); }).length;
+  const pct = chosen.length ? Math.round(learned / chosen.length * 100) : 0;
+  const none = chosen.length === 0;
+
+  const groupRow = (k) => {
+    const g = GROUPS[k];
+    const on = sel.has(k);
+    const gl = g.words.filter(w => { const s = state.words[w.id]; return s && isLearned(s); }).length;
+    return '<button class="g-row' + (on ? ' on' : '') + '" data-g="' + k + '" role="checkbox" aria-checked="' + on + '">' +
+      '<span class="cbx' + (on ? ' on' : '') + '" aria-hidden="true">' + IC.check + '</span>' +
+      '<span class="g-info"><b>' + esc(groupLabel(g)) + '</b><small>' + g.words.length + ' Wörter · ' + gl + ' gelernt</small></span>' +
+    '</button>';
+  };
+  const secHead = (label, keys, secId) => {
+    const onN = keys.filter(k => sel.has(k)).length;
+    const cls = onN === keys.length ? ' on' : (onN ? ' some' : '');
+    const total = keys.reduce((n, k) => n + GROUPS[k].words.length, 0);
+    return '<button class="sec-head" data-sec="' + secId + '">' +
+      '<span class="cbx' + cls + '" aria-hidden="true">' + IC.check + '</span>' +
+      '<span class="sec-name">' + label + (secId === 'plus' ? ' <i class="plusbadge">PLUS</i>' : '') + '</span>' +
+      '<span class="sec-count">' + total + ' Wörter</span>' +
+    '</button>';
+  };
 
   $('#scr-unit').innerHTML =
     '<div class="screen-head">' +
@@ -1332,48 +1699,73 @@ function renderUnit(uk) {
       '<div class="titles"></div>' +
     '</div>' +
     '<div class="unit-hero">' +
-      '<span class="glyph" style="background:' + U.tint + ';color:' + U.deep + '">' + UNIT_ICON[uk] + '</span>' +
+      '<span class="glyph" style="background:' + U.tint + ';color:' + U.deep + '">' + UNITE_ICON[uk] + '</span>' +
       '<h2>' + esc(U.name) + '</h2>' +
-      '<p class="sub">' + esc(U.sub) + ' · ' + wordsU.length + ' Wörter</p>' +
+      '<p class="sub">' + esc(U.sub) + '</p>' +
       starRow(state.stars[uk] || 0) +
       '<p class="starhint">Sterne holst du im Quiz</p>' +
     '</div>' +
     '<div class="modes">' +
-      '<button class="mode-btn" id="m-listen"><span class="m-ic">' + IC.speaker + '</span>Anhören</button>' +
-      '<button class="mode-btn" id="m-cards"><span class="m-ic">' + IC.cards + '</span>Lernkarten</button>' +
-      '<button class="mode-btn" id="m-quiz"><span class="m-ic">' + IC.bolt + '</span>Quiz</button>' +
+      '<button class="mode-btn" id="m-listen"' + (none ? ' disabled' : '') + '><span class="m-ic">' + IC.speaker + '</span>Anhören</button>' +
+      '<button class="mode-btn" id="m-cards"' + (none ? ' disabled' : '') + '><span class="m-ic">' + IC.cards + '</span>Lernkarten</button>' +
+      '<button class="mode-btn" id="m-quiz"' + (none ? ' disabled' : '') + '><span class="m-ic">' + IC.bolt + '</span>Quiz</button>' +
+    '</div>' +
+    (none ? '<p class="sel-hint">Wähle unten mindestens ein Lernziel.</p>' : '') +
+    '<div class="sel-wrap">' +
+      '<div class="g-lbl2">Was üben wir?</div>' +
+      secHead('Vocabulaire', baseKeys, 'base') +
+      baseKeys.map(groupRow).join('') +
+      (plusKeys.length ? secHead('Vocabulaire plus', plusKeys, 'plus') + plusKeys.map(groupRow).join('') : '') +
     '</div>' +
     '<div class="prog-line">' +
-      '<div class="lbl"><span>gelernt</span><span>' + learned + ' von ' + wordsU.length + '</span></div>' +
+      '<div class="lbl"><span>gelernt (Auswahl)</span><span>' + learned + ' von ' + chosen.length + '</span></div>' +
       '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
     '</div>';
 
   $('#u-back').addEventListener('click', goBack);
-  $('#m-listen').addEventListener('click', () => navTo({ s: 'listen', u: uk }));
-  $('#m-cards').addEventListener('click', () => navTo({ s: 'cards', u: uk }));
-  $('#m-quiz').addEventListener('click', () => navTo({ s: 'quiz', mode: 'unit', u: uk }));
+  const ml = $('#m-listen'), mc = $('#m-cards'), mq = $('#m-quiz');
+  if (ml) ml.addEventListener('click', () => navTo({ s: 'listen', u: uk }));
+  if (mc) mc.addEventListener('click', () => navTo({ s: 'cards', u: uk }));
+  if (mq) mq.addEventListener('click', () => navTo({ s: 'quiz', mode: 'unit', u: uk }));
+  $$('.g-row', $('#scr-unit')).forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.g;
+    const cur = getSel(uk);
+    setSel(uk, cur.includes(k) ? cur.filter(x => x !== k) : allKeys.filter(x => cur.includes(x) || x === k));
+    renderUnit(uk);
+  }));
+  $$('.sec-head', $('#scr-unit')).forEach(b => b.addEventListener('click', () => {
+    const keys = b.dataset.sec === 'plus' ? plusKeys : baseKeys;
+    const cur = getSel(uk);
+    const allOn = keys.every(k => cur.includes(k));
+    const next = allOn ? cur.filter(k => !keys.includes(k)) : allKeys.filter(x => cur.includes(x) || keys.includes(x));
+    setSel(uk, next);
+    renderUnit(uk);
+  }));
 }
 
 /* ================= Anhören ================= */
 
 function renderListen(uk) {
-  const U = UNITS[uk];
-  const wordsU = UNIT_WORDS[uk];
+  const U = UNITES[uk];
   let rows = '';
-  for (const w of wordsU) {
-    const s = state.words[w.id];
-    const box = s ? s.box : 0;
-    let dots = '<span class="dots" aria-hidden="true">';
-    for (let i = 1; i <= 4; i++) dots += '<i class="' + (box >= i ? 'on' : '') + '"></i>';
-    dots += '</span>';
-    rows +=
-      '<li><button class="wrow" data-id="' + esc(w.id) + '">' +
-        '<span class="w-main">' +
-          '<span class="w-fr" lang="fr" style="display:block">' + esc(w.fr) + '</span>' +
-          '<span class="w-de" style="display:block">' + esc(w.de) + '</span>' +
-        '</span>' + dots +
-        '<span class="spk' + (canHear(w) ? '' : ' off') + '" aria-hidden="true">' + IC.speaker + '</span>' +
-      '</button></li>';
+  for (const k of getSel(uk)) {
+    const g = GROUPS[k];
+    rows += '<li class="wgroup-head">' + esc(groupLabel(g)) + (g.plus ? ' <i class="plusbadge">PLUS</i>' : '') + '</li>';
+    for (const w of g.words) {
+      const s = state.words[w.id];
+      const box = s ? s.box : 0;
+      let dots = '<span class="dots" aria-hidden="true">';
+      for (let i = 1; i <= 4; i++) dots += '<i class="' + (box >= i ? 'on' : '') + '"></i>';
+      dots += '</span>';
+      rows +=
+        '<li><button class="wrow" data-id="' + esc(w.id) + '">' +
+          '<span class="w-main">' +
+            '<span class="w-fr" lang="fr" style="display:block">' + esc(w.fr) + '</span>' +
+            '<span class="w-de" style="display:block">' + esc(w.de) + '</span>' +
+          '</span>' + dots +
+          '<span class="spk' + (canHear(w) ? '' : ' off') + '" aria-hidden="true">' + IC.speaker + '</span>' +
+        '</button></li>';
+    }
   }
   $('#scr-listen').innerHTML =
     '<div class="screen-head">' +
@@ -1396,7 +1788,8 @@ function renderListen(uk) {
 let cards = null;
 
 function startCards(uk) {
-  const wordsU = UNIT_WORDS[uk];
+  const wordsU = selWords(uk);
+  if (!wordsU.length) { history.back(); return; }
   const due = [], rest = [];
   for (const w of wordsU) {
     const s = state.words[w.id];
@@ -1417,7 +1810,7 @@ function startCards(uk) {
 
 function renderCard() {
   const scr = $('#scr-cards');
-  const U = UNITS[cards.uk];
+  const U = UNITES[cards.uk];
   if (cards.idx >= cards.deck.length) { renderCardsEnd(); return; }
   const w = cards.deck[cards.idx];
   cards.flipped = false;
@@ -1602,9 +1995,9 @@ function pickDistractors(w, side, n) {
     return true;
   };
   const tiers = [
-    VOCAB.filter(x => x !== w && x.cat === w.cat && x.u === w.u),
+    VOCAB.filter(x => x !== w && x.cat === w.cat && x.un === w.un),
     VOCAB.filter(x => x !== w && x.cat === w.cat),
-    VOCAB.filter(x => x !== w && x.u === w.u),
+    VOCAB.filter(x => x !== w && x.un === w.un),
     VOCAB.filter(x => x !== w),
   ];
   const out = [];
@@ -1629,7 +2022,7 @@ function pickDistractors(w, side, n) {
 function startQuiz(mode, uk) {
   let words;
   if (mode === 'unit') {
-    const wordsU = UNIT_WORDS[uk];
+    const wordsU = selWords(uk);
     const due = wordsU.filter(w => { const s = state.words[w.id]; return !s || isDue(s); });
     const rest = wordsU.filter(w => !due.includes(w));
     words = shuffle(due).concat(shuffle(rest)).slice(0, 8);
@@ -1974,7 +2367,7 @@ function renderQuizEnd() {
 
   if (perfect || (newStar && stars === 3) || streakInfo.milestone) {
     SFX.star();
-    const tint = quiz.uk ? [UNITS[quiz.uk].deep, UNITS[quiz.uk].tint, '#F5B942', '#EE6C4D'] : null;
+    const tint = quiz.uk ? [UNITES[quiz.uk].deep, UNITES[quiz.uk].tint, '#F5B942', '#EE6C4D'] : null;
     setTimeout(() => confetti(tint), 350);
   } else if (newStar) {
     SFX.star();
@@ -2122,8 +2515,8 @@ history.replaceState({ s: 'home', u: null }, '');
 
 // kleine Test-Hilfe (bewusst zugänglich – die App ist privat)
 window.__nea = {
-  vocab: VOCAB,
-  grade, ws, promote, demote, audioSlug, canHear, flushSave, pickQType,
+  vocab: VOCAB, groups: GROUPS, uniteGroups: UNITE_GROUPS,
+  grade, ws, promote, demote, audioSlug, canHear, flushSave, pickQType, getSel, setSel, selWords,
   get quiz() { return quiz; },
   get state() { return state; },
   get tts() { return TTS; },

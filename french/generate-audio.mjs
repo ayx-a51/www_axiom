@@ -46,7 +46,15 @@ const html = readFileSync(HTML_PATH, 'utf8');
 const m = html.match(/const VOCAB = (\[[\s\S]*?\n\]);/);
 if (!m) { console.error('VOCAB-Array in index.html nicht gefunden.'); process.exit(1); }
 const vocab = new Function('return ' + m[1])();
-const entries = vocab.map((w) => ({ slug: slug(w.fr), text: stripParens(w.fr) }));
+// tts-Feld überschreibt den gesprochenen Text (gleiche Logik wie in index.html)
+const entries = [];
+const seen = new Set();
+for (const w of vocab) {
+  const s = slug(w.fr);
+  if (seen.has(s)) continue;   // gleiches Wort in mehreren Unités → eine Aufnahme
+  seen.add(s);
+  entries.push({ slug: s, text: w.tts || stripParens(w.fr) });
+}
 console.log(entries.length + ' Vokabeln in index.html gefunden.');
 
 mkdirSync(AUDIO_DIR, { recursive: true });
