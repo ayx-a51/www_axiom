@@ -44,8 +44,9 @@
     --err: #D95556;
     --err-tint: #FBECEA;
     --flame: #F58A3C;
-    --shadow: 0 6px 20px -8px rgba(88, 57, 24, 0.18);
-    --shadow-lg: 0 14px 34px -12px rgba(88, 57, 24, 0.24);
+    --sh: 88, 57, 24;          /* Schattenton, folgt der Themenfarbe */
+    --shadow: 0 6px 20px -8px rgba(var(--sh), 0.18);
+    --shadow-lg: 0 14px 34px -12px rgba(var(--sh), 0.24);
     --r-card: 16px;
     --r-btn: 14px;
   }
@@ -210,9 +211,17 @@
   }
   .glyph svg { width: 28px; height: 28px; }
   .unit-card .u-info { flex: 1; min-width: 0; }
-  .unit-card .u-name { font-size: 17px; font-weight: 700; }
-  .unit-card .u-sub { font-size: 13px; color: var(--muted); }
-  .unit-card .u-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .unit-card .u-top { display: flex; align-items: center; gap: 8px; }
+  .unit-card .u-name { flex: 1; font-size: 17px; font-weight: 700; }
+  .unit-card .u-sub { display: block; font-size: 13px; color: var(--muted); }
+  .unit-card .u-bar {
+    display: flex; height: 6px; border-radius: 3px; background: var(--line);
+    overflow: hidden; margin: 8px 0 5px;
+  }
+  .u-bar > i, .end-prog .bar > i { display: block; height: 100%; transition: width 0.4s ease; }
+  .u-bar > i.done, .end-prog .bar > i.done { background: var(--accent); }
+  .u-bar > i.wip, .end-prog .bar > i.wip { background: #9BD5CE; }
+  .unit-card .u-meta { display: block; font-size: 12px; color: var(--muted); }
   .stars { display: inline-flex; gap: 2px; flex-shrink: 0; }
   .stars span { display: inline-flex; color: var(--star); }
   .stars span.off { color: var(--line); }
@@ -440,7 +449,7 @@
     margin: 0 auto;
     background: var(--surface);
     border-radius: 20px 20px 0 0;
-    box-shadow: 0 -10px 34px -10px rgba(88, 57, 24, 0.3);
+    box-shadow: 0 -10px 34px -10px rgba(var(--sh), 0.3);
     padding: 18px 20px calc(16px + env(safe-area-inset-bottom, 0px));
     animation: rise 0.22s ease-out;
   }
@@ -484,6 +493,9 @@
   .end-stars span.on:nth-child(3) { animation-delay: 0.24s; }
   @keyframes starpop { from { transform: scale(0); } 70% { transform: scale(1.18); } to { transform: scale(1); } }
   .end-stat { font-size: 16px; color: var(--muted); font-weight: 600; margin: 2px 0 0; }
+  .end-prog { width: 100%; max-width: 320px; margin: 12px 0 2px; }
+  .end-prog .bar { display: flex; height: 7px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .end-prog .end-stat { font-size: 14px; margin-top: 7px; }
   .end-streak { font-size: 16px; font-weight: 800; color: var(--flame); margin: 4px 0 0; }
   .recap { width: 100%; margin-top: 16px; text-align: left; }
   .recap h4 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 0 0 8px; }
@@ -1506,6 +1518,7 @@ const IC = {
   gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01A1.7 1.7 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01A1.7 1.7 0 0 0 20.91 10H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg>',
   flame: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 22c4.4 0 7.5-2.9 7.5-7.2 0-3.4-2.1-5.9-3.9-7.8-.6 1.4-1.6 2.4-2.6 2.9.3-2.6-.7-5.7-3.4-7.9-.3 2.4-1.3 4-2.6 5.6C5.6 9.3 4.5 11.4 4.5 14 4.5 19.1 7.6 22 12 22z"/></svg>',
   star: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2 2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17l-6.1 3.6 1.4-6.8L2.2 9.1l6.9-.8z"/></svg>',
+  starOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="m12 2.8 2.7 5.9 6.4.7-4.8 4.4 1.3 6.3L12 16.9l-5.6 3.2 1.3-6.3L2.9 9.4l6.4-.7z"/></svg>',
   check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4.5 4.5L19 8"/></svg>',
   // Lernziel-Symbole
   u1: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V8a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v13"/><path d="M6 12h12"/><path d="M9 5V3h6v2"/><path d="M4 21h16"/></svg>',
@@ -1531,8 +1544,45 @@ const LOGO =
 
 function starRow(n, cls) {
   let h = '<span class="stars ' + (cls || '') + '" aria-label="' + n + ' von 3 Sternen">';
-  for (let i = 1; i <= 3; i++) h += '<span class="' + (i <= n ? '' : 'off') + '">' + IC.star + '</span>';
+  for (let i = 1; i <= 3; i++) {
+    h += i <= n ? '<span>' + IC.star + '</span>' : '<span class="off">' + IC.starOff + '</span>';
+  }
   return h + '</span>';
+}
+
+/* Fortschritt einer Unité: wie viele Wörter sitzen schon (Kästchen 3+)?
+   Daraus kommen auch die Sterne — ein Drittel, zwei Drittel, alle.
+   Einmal verdiente Sterne bleiben, auch wenn ein Wort wieder wackelt. */
+function unitStats(uk) {
+  const words = VOCAB.filter(w => w.un === uk);
+  let learned = 0, wip = 0;
+  for (const w of words) {
+    const s = state.words[w.id];
+    if (!s || s.seen === 0) continue;
+    if (isLearned(s)) learned++; else wip++;       // angefangen, sitzt aber noch nicht
+  }
+  const total = words.length || 1;
+  return { total: words.length, learned, wip,
+           pct: learned / total, wipPct: wip / total };
+}
+// Balken: fester Teil = gelernt, hellerer Teil = angefangen
+function progBar(st, cls) {
+  const done = Math.round(st.pct * 100);
+  const wip = Math.min(100 - done, Math.round(st.wipPct * 100));
+  return '<span class="' + (cls || 'u-bar') + '">' +
+    '<i class="done" style="width:' + done + '%"></i>' +
+    '<i class="wip" style="width:' + wip + '%"></i>' +
+  '</span>';
+}
+function progLabel(st) {
+  return st.learned + ' von ' + st.total + ' gelernt' + (st.wip ? ' · ' + st.wip + ' in Arbeit' : '');
+}
+function starsFor(uk) {
+  const p = unitStats(uk).pct;
+  const now = p >= 1 ? 3 : p >= 2 / 3 ? 2 : p >= 1 / 3 ? 1 : 0;
+  const best = Math.max(now, state.stars[uk] || 0);
+  if (best !== (state.stars[uk] || 0)) { state.stars[uk] = best; save(); }
+  return best;
 }
 
 /* ================= Navigation ================= */
@@ -1722,17 +1772,16 @@ function renderHome() {
   let unitsHtml = '';
   for (const uk of UNITE_ORDER) {
     const U = UNITES[uk];
-    const wordsU = VOCAB.filter(w => w.un === uk);
-    const learned = wordsU.filter(w => { const s = state.words[w.id]; return s && isLearned(s); }).length;
+    const st = unitStats(uk);
     unitsHtml +=
       '<button class="unit-card" data-unit="' + uk + '">' +
         '<span class="glyph" style="background:' + U.tint + ';color:' + U.deep + '">' + UNITE_ICON[uk] + '</span>' +
         '<span class="u-info">' +
-          '<span class="u-name">' + esc(U.name) + '</span>' +
-          '<span class="u-sub" style="display:block">' + esc(U.sub) + '</span>' +
-          '<span class="u-meta">' + wordsU.length + ' Wörter · ' + learned + ' gelernt</span>' +
+          '<span class="u-top"><span class="u-name">' + esc(U.name) + '</span>' + starRow(starsFor(uk)) + '</span>' +
+          '<span class="u-sub">' + esc(U.sub) + '</span>' +
+          progBar(st) +
+          '<span class="u-meta">' + progLabel(st) + '</span>' +
         '</span>' +
-        starRow(state.stars[uk] || 0) +
       '</button>';
   }
 
@@ -1798,6 +1847,7 @@ function renderHome() {
 
 function renderUnit(uk) {
   const U = UNITES[uk];
+  const uStats = unitStats(uk);
   const sel = new Set(getSel(uk));
   const allKeys = UNITE_GROUPS[uk] || [];
   const baseKeys = allKeys.filter(k => !GROUPS[k].plus);
@@ -1836,8 +1886,8 @@ function renderUnit(uk) {
       '<span class="glyph" style="background:' + U.tint + ';color:' + U.deep + '">' + UNITE_ICON[uk] + '</span>' +
       '<h2>' + esc(U.name) + '</h2>' +
       '<p class="sub">' + esc(U.sub) + '</p>' +
-      starRow(state.stars[uk] || 0) +
-      '<p class="starhint">Sterne holst du im Quiz</p>' +
+      starRow(starsFor(uk)) +
+      '<p class="starhint">' + uStats.learned + ' von ' + uStats.total + ' Wörtern gelernt · alle = 3 Sterne</p>' +
     '</div>' +
     '<div class="modes">' +
       '<button class="mode-btn" id="m-listen"' + (none ? ' disabled' : '') + '><span class="m-ic">' + IC.speaker + '</span>Anhören</button>' +
@@ -2450,17 +2500,25 @@ function renderQuizEnd() {
   const scr = $('#scr-quiz');
   const total = quiz.len;
   const first = quiz.firstTry;
-  const pct = total ? first / total : 0;
 
   let starHtml = '';
   let newStar = false;
   let stars = 0;
-  if (quiz.mode === 'unit') {
-    stars = pct >= 0.9 ? 3 : pct >= 0.65 ? 2 : 1;
+  if (quiz.mode === 'unit' || quiz.uk) {
     const prevStars = state.stars[quiz.uk] || 0;
-    if (stars > prevStars) { state.stars[quiz.uk] = stars; newStar = true; save(); }
-    starHtml = '<div class="end-stars">' +
-      [1, 2, 3].map(i => '<span class="' + (i <= stars ? 'on' : '') + '" style="display:inline-flex">' + IC.star + '</span>').join('') +
+    stars = starsFor(quiz.uk);                 // Sterne aus dem Lernstand der Unité
+    newStar = stars > prevStars;
+    const us = unitStats(quiz.uk);
+    starHtml =
+      (newStar || stars > 0
+        ? '<div class="end-stars">' +
+            [1, 2, 3].map(i => '<span class="' + (i <= stars ? 'on' : '') + '" style="display:inline-flex">' +
+              (i <= stars ? IC.star : IC.starOff) + '</span>').join('') +
+          '</div>'
+        : '') +
+      '<div class="end-prog">' +
+        progBar(us, 'bar') +
+        '<p class="end-stat">' + esc(UNITES[quiz.uk].name) + ': ' + progLabel(us) + '</p>' +
       '</div>';
   }
 
@@ -2491,7 +2549,7 @@ function renderQuizEnd() {
     '</div>' +
     '<div class="end-wrap">' +
       '<h2>Fertig!</h2>' + starHtml +
-      '<p class="end-stat">' + first + ' von ' + total + ' beim ersten Versuch</p>' +
+      '<p class="end-stat round">' + first + ' von ' + total + ' beim ersten Versuch</p>' +
       (firstRoundToday && state.streak.count > 0
         ? '<p class="end-streak"><span class="bump" style="display:inline-block">🔥</span> Serie: ' +
           state.streak.count + (state.streak.count === 1 ? ' Tag!' : ' Tage!') + '</p>'
@@ -2524,11 +2582,18 @@ function renderQuizEnd() {
 
 /* ================= Einstellungen ================= */
 
+/* Pro Themenfarbe: Knopffarbe (c/p), helle Flächen (s1/s2), Text darauf (ink),
+   Rahmen (edge) — und dazu der Grundton der Seite (bg), die Linien (line)
+   und der Schattenton (sh), damit nicht alles creme-orange bleibt. */
 const ACCENTS = {
-  coral: { c: '#EE6C4D', p: '#D95B3E', s1: '#FDE8DE', s2: '#FBDCCE', ink: '#8A5B44', edge: '#F3C4B5' },
-  teal:  { c: '#1F9E92', p: '#177E74', s1: '#DDF2EF', s2: '#C6E8E3', ink: '#1B665F', edge: '#A5D9D3' },
-  peri:  { c: '#4353A8', p: '#37458C', s1: '#E5E9F9', s2: '#D2D9F1', ink: '#3A4682', edge: '#B7C2E9' },
-  rose:  { c: '#A93E72', p: '#8E325F', s1: '#FAE3EE', s2: '#F5D1E2', ink: '#7C2C53', edge: '#E7B5CD' },
+  coral: { c: '#EE6C4D', p: '#D95B3E', s1: '#FDE8DE', s2: '#FBDCCE', ink: '#8A5B44', edge: '#F3C4B5',
+           bg: '#FBF6EE', line: '#EDE4D7', sh: '88, 57, 24' },
+  teal:  { c: '#1F9E92', p: '#177E74', s1: '#DDF2EF', s2: '#C6E8E3', ink: '#1B665F', edge: '#A5D9D3',
+           bg: '#F2F9F7', line: '#DAE8E4', sh: '16, 66, 58' },
+  peri:  { c: '#4353A8', p: '#37458C', s1: '#E5E9F9', s2: '#D2D9F1', ink: '#3A4682', edge: '#B7C2E9',
+           bg: '#F4F6FD', line: '#DFE3F2', sh: '32, 42, 88' },
+  rose:  { c: '#A93E72', p: '#8E325F', s1: '#FAE3EE', s2: '#F5D1E2', ink: '#7C2C53', edge: '#E7B5CD',
+           bg: '#FCF5F9', line: '#F0DDE8', sh: '82, 30, 58' },
 };
 function applyAccent() {
   const a = ACCENTS[state.settings.accent] || ACCENTS.coral;
@@ -2539,6 +2604,11 @@ function applyAccent() {
   r.setProperty('--p-soft2', a.s2);
   r.setProperty('--p-ink', a.ink);
   r.setProperty('--p-edge', a.edge);
+  r.setProperty('--bg', a.bg);
+  r.setProperty('--line', a.line);
+  r.setProperty('--sh', a.sh);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', a.bg);   // Statusleiste im Startbildschirm-Modus
 }
 function accentColor() {
   return (ACCENTS[state.settings.accent] || ACCENTS.coral).c;
@@ -2650,6 +2720,7 @@ window.__nea = {
   vocab: VOCAB, groups: GROUPS, uniteGroups: UNITE_GROUPS,
   grade, ws, promote, demote, recordAttempt, audioSlug, canHear, flushSave, pickQType, getSel, setSel, selWords,
   planTraining, expandRound, priority, trouble, weakWords, activeWords, startedWords, userName, newRoomToday,
+  unitStats, starsFor,
   ROUND_TRAINING, CORE_TRAINING, ACTIVE_LIMIT, NEW_PER_ROUND, NEW_PER_DAY, MAX_REP,
   get quiz() { return quiz; },
   get state() { return state; },
