@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Französisch">
 <title>Französisch · Nea</title>
-<link rel="icon" href="apple-touch-icon.png" type="image/png">
+<link rel="icon" href="favicon.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preload" href="manrope.woff2" as="font" type="font/woff2" crossorigin>
 <style>
@@ -29,6 +29,10 @@
     --line: #EDE4D7;
     --primary: #EE6C4D;
     --primary-press: #D95B3E;
+    --p-soft1: #FDE8DE;        /* helle Flächen in der Themenfarbe */
+    --p-soft2: #FBDCCE;
+    --p-ink: #8A5B44;          /* Text auf diesen Flächen */
+    --p-edge: #F3C4B5;         /* Rahmen in der Themenfarbe */
     --accent: #1F9E92;
     --accent-soft: #E2F2F0;
     --star: #F5B942;
@@ -141,7 +145,11 @@
   .screen-head .sub { margin: 1px 0 0; font-size: 13px; color: var(--muted); }
 
   /* ---------- home ---------- */
-  .home-head { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0 16px; }
+  .home-top { display: flex; align-items: center; gap: 8px; padding: 2px 0 2px; }
+  .home-top .spacer { flex: 1; }
+  .home-head { display: flex; align-items: center; gap: 12px; padding: 6px 0 16px; }
+  .home-head .logo { width: 46px; height: 46px; flex-shrink: 0; }
+  .home-head .logo svg { width: 100%; height: 100%; display: block; }
   .home-head .hello { flex: 1; min-width: 0; }
   .home-head h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.01em; overflow-wrap: anywhere; }
   .home-head .sub { margin: 2px 0 0; font-size: 15px; color: var(--muted); }
@@ -160,7 +168,7 @@
   @keyframes bump { 0% {transform: scale(1);} 40% {transform: scale(1.35);} 100% {transform: scale(1);} }
 
   .train-card {
-    background: linear-gradient(135deg, #FDE8DE, #FBDCCE);
+    background: linear-gradient(135deg, var(--p-soft1), var(--p-soft2));
     border-radius: var(--r-card);
     box-shadow: var(--shadow);
     padding: 18px;
@@ -169,7 +177,7 @@
   }
   .train-card .t-info { flex: 1; min-width: 0; }
   .train-card h2 { margin: 0 0 2px; font-size: 20px; font-weight: 800; }
-  .train-card p { margin: 0; font-size: 14px; color: #8A5B44; font-weight: 600; }
+  .train-card p { margin: 0; font-size: 14px; color: var(--p-ink); font-weight: 600; }
   .train-card .btn { flex-shrink: 0; min-width: 96px; }
 
   .weakbtn { width: 100%; margin-bottom: 14px; }
@@ -209,7 +217,6 @@
   .stars span { display: inline-flex; color: var(--star); }
   .stars span.off { color: var(--line); }
   .stars svg { width: 20px; height: 20px; }
-  .home-foot { display: flex; justify-content: flex-end; padding-top: 18px; margin-top: auto; }
 
   /* ---------- unit screen ---------- */
   .unit-hero { text-align: center; padding: 10px 0 20px; }
@@ -358,7 +365,7 @@
   .card-actions.show { visibility: visible; animation: rise 0.22s ease-out; }
   @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
   .card-actions .btn { flex: 1; min-height: 58px; }
-  .card-actions .again { border: 2px solid #F3C4B5; color: var(--primary); background: var(--surface); }
+  .card-actions .again { border: 2px solid var(--p-edge); color: var(--primary); background: var(--surface); }
 
   /* ---------- quiz ---------- */
   .quiz-top { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; }
@@ -1452,7 +1459,7 @@ function confetti(colors) {
   cv.height = innerHeight * dpr;
   const ctx = cv.getContext('2d');
   ctx.scale(dpr, dpr);
-  const cols = colors || ['#EE6C4D', '#F5B942', '#1F9E92', '#4353A8', '#A93E72'];
+  const cols = colors || [accentColor(), '#F5B942', '#1F9E92', '#4353A8', '#A93E72'];
   const parts = [];
   for (let i = 0; i < 120; i++) {
     parts.push({
@@ -1510,6 +1517,17 @@ const IC = {
   apple: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8.2c-1.6-1.7-4.2-2-5.9-.5-2.2 2-2.5 5.3-1.1 8.2C6.1 18.3 8 20.4 9.8 20.4c.9 0 1.4-.5 2.2-.5s1.3.5 2.2.5c1.8 0 3.7-2.1 4.8-4.5 1.4-2.9 1.1-6.2-1.1-8.2-1.7-1.5-4.3-1.2-5.9.5z"/><path d="M12 8.2c0-2.2 1.2-3.7 3.2-4.7"/></svg>',
 };
 const UNITE_ICON = { u1: IC.uS, u2: IC.fam, u3: IC.ball, u4: IC.apple };
+
+/* App-Logo: «é», dessen Accent aigu ein kleiner Funke ist.
+   Die Fläche nimmt die eingestellte Themenfarbe an.
+   Passend dazu: french/apple-touch-icon.png und french/favicon.png
+   (erzeugt mit make-icons.mjs — bei Änderungen dort neu rendern). */
+const LOGO =
+  '<svg viewBox="0 0 100 100" aria-hidden="true">' +
+    '<rect width="100" height="100" rx="24" fill="var(--primary)"/>' +
+    '<text x="50" y="80" font-family="Manrope, system-ui, sans-serif" font-weight="800" font-size="72" fill="#fff" text-anchor="middle">e</text>' +
+    '<path d="M62 22l3.4 7.6L73 33l-7.6 3.4L62 44l-3.4-7.6L51 33l7.6-3.4z" fill="#F5B942"/>' +
+  '</svg>';
 
 function starRow(n, cls) {
   let h = '<span class="stars ' + (cls || '') + '" aria-label="' + n + ' von 3 Sternen">';
@@ -1746,18 +1764,22 @@ function renderHome() {
     : '';
 
   $('#scr-home').innerHTML =
-    '<header class="home-head">' +
-      '<div class="hello"><h1>Salut ' + esc(userName()) + '!</h1><p class="sub">Bereit für ein bisschen Französisch?</p></div>' +
+    '<div class="home-top">' +
+      '<span class="spacer"></span>' +
       (streakN > 0 || doneToday
         ? '<span class="chip' + (doneToday ? ' done' : '') + '" id="streak-chip">' +
             (doneToday ? IC.check : '<span class="flame">' + IC.flame + '</span>') +
             '<b>' + streakN + '</b><span>' + (streakN === 1 ? 'Tag' : 'Tage') + '</span>' +
           '</span>'
         : '') +
+      '<button class="iconbtn" id="btn-settings" aria-label="Einstellungen">' + IC.gear + '</button>' +
+    '</div>' +
+    '<header class="home-head">' +
+      '<span class="logo">' + LOGO + '</span>' +
+      '<div class="hello"><h1>Salut ' + esc(userName()) + '!</h1><p class="sub">Bereit für ein bisschen Französisch?</p></div>' +
     '</header>' +
     noVoiceHtml + trainHtml + weakHtml +
-    '<div class="unit-list">' + unitsHtml + '</div>' +
-    '<div class="home-foot"><button class="iconbtn" id="btn-settings" aria-label="Einstellungen">' + IC.gear + '</button></div>';
+    '<div class="unit-list">' + unitsHtml + '</div>';
 
   const bt = $('#btn-train');
   if (bt) bt.addEventListener('click', () => navTo({ s: 'quiz', mode: 'training' }));
@@ -2493,7 +2515,7 @@ function renderQuizEnd() {
 
   if (perfect || (newStar && stars === 3) || streakInfo.milestone) {
     SFX.star();
-    const tint = quiz.uk ? [UNITES[quiz.uk].deep, UNITES[quiz.uk].tint, '#F5B942', '#EE6C4D'] : null;
+    const tint = quiz.uk ? [UNITES[quiz.uk].deep, UNITES[quiz.uk].tint, '#F5B942', accentColor()] : null;
     setTimeout(() => confetti(tint), 350);
   } else if (newStar) {
     SFX.star();
@@ -2503,15 +2525,23 @@ function renderQuizEnd() {
 /* ================= Einstellungen ================= */
 
 const ACCENTS = {
-  coral: { c: '#EE6C4D', p: '#D95B3E' },
-  teal: { c: '#1F9E92', p: '#177E74' },
-  peri: { c: '#4353A8', p: '#37458C' },
-  rose: { c: '#A93E72', p: '#8E325F' },
+  coral: { c: '#EE6C4D', p: '#D95B3E', s1: '#FDE8DE', s2: '#FBDCCE', ink: '#8A5B44', edge: '#F3C4B5' },
+  teal:  { c: '#1F9E92', p: '#177E74', s1: '#DDF2EF', s2: '#C6E8E3', ink: '#1B665F', edge: '#A5D9D3' },
+  peri:  { c: '#4353A8', p: '#37458C', s1: '#E5E9F9', s2: '#D2D9F1', ink: '#3A4682', edge: '#B7C2E9' },
+  rose:  { c: '#A93E72', p: '#8E325F', s1: '#FAE3EE', s2: '#F5D1E2', ink: '#7C2C53', edge: '#E7B5CD' },
 };
 function applyAccent() {
   const a = ACCENTS[state.settings.accent] || ACCENTS.coral;
-  document.documentElement.style.setProperty('--primary', a.c);
-  document.documentElement.style.setProperty('--primary-press', a.p);
+  const r = document.documentElement.style;
+  r.setProperty('--primary', a.c);
+  r.setProperty('--primary-press', a.p);
+  r.setProperty('--p-soft1', a.s1);
+  r.setProperty('--p-soft2', a.s2);
+  r.setProperty('--p-ink', a.ink);
+  r.setProperty('--p-edge', a.edge);
+}
+function accentColor() {
+  return (ACCENTS[state.settings.accent] || ACCENTS.coral).c;
 }
 
 let confirmDelete = false;
