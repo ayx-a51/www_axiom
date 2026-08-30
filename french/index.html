@@ -362,8 +362,10 @@
 
   /* ---------- quiz ---------- */
   .quiz-top { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; }
-  .segbar { flex: 1; display: flex; gap: 5px; }
-  .segbar i { flex: 1; height: 7px; border-radius: 4px; background: var(--line); transition: background 0.3s ease; }
+  .segwrap { flex: 1; display: flex; align-items: center; gap: 10px; }
+  .q-count { font-size: 13px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
+  .segbar { flex: 1; display: flex; gap: 3px; }
+  .segbar i { flex: 1; min-width: 3px; height: 7px; border-radius: 3px; background: var(--line); transition: background 0.3s ease; }
   .segbar i.ok { background: var(--ok); }
   .segbar i.retry { background: var(--warn); }
   .q-area { display: flex; flex-direction: column; flex: 1; min-height: 0; }
@@ -507,19 +509,12 @@
   .sheet h3 { margin: 0 0 14px; font-size: 20px; font-weight: 800; }
   .set-group { margin-bottom: 20px; }
   .set-group > .g-lbl { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 8px; }
-  .voice-row {
-    display: flex; align-items: center; gap: 10px;
-    background: var(--surface); border: 2px solid var(--line); border-radius: var(--r-btn);
-    padding: 10px 12px; margin-bottom: 8px;
-    width: 100%; text-align: left;
+  .name-input {
+    width: 100%; font: inherit; font-size: 17px; font-weight: 700;
+    padding: 13px 15px; border: 2px solid var(--line); border-radius: var(--r-btn);
+    background: var(--surface); color: var(--ink);
   }
-  .voice-row.sel { border-color: var(--accent); }
-  .voice-row .v-name { flex: 1; min-width: 0; }
-  .voice-row .v-name b { display: block; font-size: 15px; }
-  .voice-row .v-name span { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
-  .voice-row .test { font-weight: 700; font-size: 14px; color: var(--accent); padding: 10px 12px; flex-shrink: 0; }
-  .voice-row .dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line); flex-shrink: 0; }
-  .voice-row.sel .dot { border-color: var(--accent); background: radial-gradient(var(--accent) 45%, transparent 50%); }
+  .name-input:focus { border-color: var(--accent); outline: none; }
   .set-row {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
     background: var(--surface); border-radius: var(--r-btn); padding: 13px 15px;
@@ -1057,10 +1052,17 @@ function freshState() {
     streak: { count: 0, last: '', rekord: 0 },
     day: { date: '', rounds: 0, cards: 0 },
     hints: {},                                     // einmalige Hinweise
-    settings: { sounds: true, accent: 'coral', voiceName: '', voiceLang: '', sel: {} },
+    settings: { name: 'Nea', sounds: true, accent: 'coral', sel: {} },
   };
 }
 let state = loadState();
+function userName() {
+  const n = String((state.settings && state.settings.name) || '').trim();
+  return n || 'Nea';
+}
+function applyName() {
+  document.title = 'Französisch · ' + userName();
+}
 
 function loadState() {
   try {
@@ -1235,8 +1237,7 @@ function refreshVoices() {
   const v = speechSynthesis.getVoices();
   if (!v.length) return;
   TTS.voices = v.filter(x => scoreVoice(x) >= 0).sort((a, b) => scoreVoice(b) - scoreVoice(a));
-  const pref = TTS.voices.find(x => x.name === state.settings.voiceName && x.lang === state.settings.voiceLang);
-  TTS.voice = pref || TTS.voices[0] || null;
+  TTS.voice = TTS.voices[0] || null;   // beste französische Stimme als Ersatz für fehlende Aufnahmen
   const wasNone = TTS.none;
   TTS.none = TTS.voices.length === 0;
   if (wasNone !== TTS.none) {
@@ -1379,21 +1380,6 @@ document.addEventListener('pointerdown', function unlock() {
   SFX.ensure();
   document.removeEventListener('pointerdown', unlock);
 });
-
-// Eine bestimmte Stimme ausprobieren (ohne die Auswahl zu ändern)
-function speakWith(v, text) {
-  if (!('speechSynthesis' in window)) return;
-  try { speechSynthesis.cancel(); } catch (e) {}
-  setTimeout(() => {
-    const u = new SpeechSynthesisUtterance(text);
-    u.voice = v;
-    u.lang = v.lang || 'fr-FR';
-    u.rate = 0.9;
-    TTS.currentU = u;
-    u.onend = u.onerror = () => { if (TTS.currentU === u) TTS.currentU = null; };
-    try { speechSynthesis.speak(u); } catch (e) {}
-  }, 60);
-}
 
 // Sprech-Knopf-Animation an ein Element binden; w ist ein Wort-Objekt
 // (Aufnahme bevorzugt) oder ein roher Text (immer Browser-Stimme)
@@ -1568,28 +1554,126 @@ function goBack() { history.back(); }
 
 let noVoiceDismissed = false;
 
-function buildTrainingRound() {
-  const t = todayStr();
-  const seen = [], fresh = [];
+/* ---------- Runden-Planung ----------
+   Knifflige Wörter kommen häufiger dran (öfter pro Runde und weiter vorne),
+   neue Wörter erst, wenn die angefangenen gut genug sitzen.              */
+
+const ROUND_TRAINING = 20;   // Fragen in einer «Los!»-Runde
+const ROUND_UNIT = 10;       // Fragen in einer Unité-Runde
+const ROUND_WEAK = 15;       // Fragen in «Knifflige Wörter»
+const ACTIVE_LIMIT = 12;     // so viele Wörter dürfen gleichzeitig im Lernen sein
+const NEW_PER_ROUND = 5;     // höchstens so viele neue Wörter pro Runde
+const MAX_REP = 3;           // ein Wort höchstens 3× pro Runde
+
+// 0 = sitzt, grösser = kniffliger
+function trouble(s) {
+  if (!s || s.seen === 0) return 0;
+  const bad = s.recent.filter(x => !x).length;
+  const ratio = s.wrong / Math.max(1, s.seen);
+  return bad * 1.2 + ratio * 2 + Math.max(0, 3 - s.box) * 0.4;
+}
+// Reihenfolge in der Runde: knifflig und überfällig zuerst
+function priority(w) {
+  const s = state.words[w.id];
+  if (!s || s.seen === 0) return 0;
+  let p = trouble(s) * 3;
+  if (isDue(s)) p += 3;
+  if (s.due) p += Math.min(30, Math.max(0, dayDiff(s.due, todayStr()))) * 0.3;
+  return p;
+}
+// wie oft darf ein Wort in einer Runde wiederholt werden
+function repeatWeight(w) {
+  const s = state.words[w.id];
+  if (!s || s.seen === 0) return 3;              // neue Wörter brauchen Wiederholung
+  return 1 + Math.min(3, trouble(s));
+}
+function startedWords() {
+  return VOCAB.filter(w => { const s = state.words[w.id]; return s && s.seen > 0; });
+}
+// angefangen, aber noch nicht sicher (Kästchen < 3)
+function activeWords() {
+  return VOCAB.filter(w => { const s = state.words[w.id]; return s && s.seen > 0 && s.box < 3; });
+}
+function weakWords() {
+  return VOCAB.filter(w => { const s = state.words[w.id]; return s && isWeak(s); })
+    .sort((a, b) => priority(b) - priority(a));
+}
+
+// Welche Wörter kommen in die nächste «Los!»-Runde?
+function planTraining() {
+  const started = [], fresh = [];
   for (const w of VOCAB) {
     const s = state.words[w.id];
-    if (s && s.seen > 0) { if (isDue(s)) seen.push({ w, s }); }
-    else fresh.push(w);
+    if (s && s.seen > 0) started.push(w); else fresh.push(w);
   }
-  seen.sort((a, b) => (a.s.due || t).localeCompare(b.s.due || t) || a.s.box - b.s.box);
-  const out = seen.map(x => x.w).slice(0, 8);
-  for (const w of fresh) {
-    if (out.length >= 8 || out.filter(x => !state.words[x.id] || state.words[x.id].seen === 0).length >= 5) break;
-    out.push(w);
+  const byPrio = started.slice().sort((a, b) => priority(b) - priority(a));
+  const picked = byPrio.filter(w => isDue(state.words[w.id])).slice(0, ROUND_TRAINING);
+
+  // Neue Wörter nur, wenn nicht schon zu viele offen sind
+  const room = Math.max(0, ACTIVE_LIMIT - activeWords().length);
+  const newN = Math.max(0, Math.min(room, NEW_PER_ROUND, ROUND_TRAINING - picked.length));
+  const newOnes = fresh.slice(0, newN);
+  picked.push(...newOnes);
+
+  // Gibt es heute gar nichts zu tun, bleibt die Runde leer — dann zeigt die
+  // Startseite «Alles erledigt» (und «Trotzdem üben» für die Übermotivierten).
+  if (!picked.length) return { picked: [], newOnes: [] };
+
+  // sonst mit noch nicht fälligen Wiederholungen auffüllen (nie mit neuen)
+  for (const w of byPrio) {
+    if (picked.length >= ROUND_TRAINING) break;
+    if (picked.indexOf(w) < 0) picked.push(w);
+  }
+  return { picked, newOnes };
+}
+
+// Aus den gewählten Wörtern eine Fragen-Reihenfolge bauen: knifflige und neue
+// Wörter kommen mehrfach vor, aber nie direkt hintereinander.
+function expandRound(picked, target) {
+  if (!picked.length) return [];
+  const limit = Math.max(picked.length, Math.min(target, picked.length * MAX_REP));
+  const order = picked.slice().sort((a, b) => priority(b) - priority(a));
+  const count = new Map(order.map(w => [w, 1]));
+  let total = order.length;
+  // Zusatz-Auftritte nach Gewicht verteilen: knifflige und neue Wörter
+  // bekommen mehr davon als Wörter, die schon sitzen.
+  while (total < limit) {
+    let best = null, bestScore = 0;
+    for (const w of order) {
+      const c = count.get(w);
+      if (c >= MAX_REP) continue;
+      const score = repeatWeight(w) / c;
+      if (score > bestScore) { bestScore = score; best = w; }
+    }
+    if (!best) break;
+    count.set(best, count.get(best) + 1);
+    total++;
+  }
+  // gierig anordnen: immer das Wort mit den meisten offenen Auftritten,
+  // das nicht unter den letzten zwei Fragen war
+  const out = [];
+  const left = new Map(count);
+  while (out.length < total) {
+    const recent = out.slice(-2);
+    let best = null, bestN = 0;
+    for (const [w, n] of left) {
+      if (n <= 0 || recent.indexOf(w) >= 0) continue;
+      const score = n * 10 + priority(w);
+      if (!best || score > bestN) { best = w; bestN = score; }
+    }
+    if (!best) {                                   // Abstand nicht möglich → nimm irgendeins
+      for (const [w, n] of left) { if (n > 0) { best = w; break; } }
+      if (!best) break;
+    }
+    left.set(best, left.get(best) - 1);
+    out.push(best);
   }
   return out;
 }
-function weakWords() {
-  return VOCAB.filter(w => { const s = state.words[w.id]; return s && isWeak(s); });
-}
 
 function renderHome() {
-  const due = buildTrainingRound();
+  const plan = planTraining();
+  const due = plan.picked;
   const weak = weakWords();
   // abgelaufene Serie nicht mehr anzeigen (gleiche Regel wie in notePractice)
   const alive = state.streak.last && dayDiff(state.streak.last, todayStr()) <= 2;
@@ -1613,11 +1697,18 @@ function renderHome() {
       '</button>';
   }
 
+  let trainLine = '';
+  if (due.length) {
+    const nQ = expandRound(due, ROUND_TRAINING).length;
+    const nWeak = due.filter(w => { const s = state.words[w.id]; return s && isWeak(s); }).length;
+    const nNew = plan.newOnes.length;
+    trainLine = nQ + ' Fragen';
+    if (nWeak) trainLine += ' · ' + nWeak + (nWeak === 1 ? ' kniffliges' : ' knifflige');
+    else if (nNew) trainLine += ' · ' + nNew + (nNew === 1 ? ' neues Wort' : ' neue Wörter');
+  }
   const trainHtml = due.length
     ? '<div class="train-card">' +
-        '<div class="t-info"><h2>Training</h2><p>' +
-          (due.length === 1 ? '1 Wort wartet auf dich' : due.length + ' Wörter warten auf dich') +
-        '</p></div>' +
+        '<div class="t-info"><h2>Training</h2><p>' + trainLine + '</p></div>' +
         '<button class="btn primary big" id="btn-train">Los!</button>' +
       '</div>'
     : '<div class="train-card">' +
@@ -1635,7 +1726,7 @@ function renderHome() {
 
   $('#scr-home').innerHTML =
     '<header class="home-head">' +
-      '<div class="hello"><h1>Salut Nea!</h1><p class="sub">Bereit für ein bisschen Französisch?</p></div>' +
+      '<div class="hello"><h1>Salut ' + esc(userName()) + '!</h1><p class="sub">Bereit für ein bisschen Französisch?</p></div>' +
       (streakN > 0 || doneToday
         ? '<span class="chip' + (doneToday ? ' done' : '') + '" id="streak-chip">' +
             (doneToday ? IC.check : '<span class="flame">' + IC.flame + '</span>') +
@@ -2020,23 +2111,25 @@ function pickDistractors(w, side, n) {
 }
 
 function startQuiz(mode, uk) {
-  let words;
+  let picked, target;
   if (mode === 'unit') {
     const wordsU = selWords(uk);
     const due = wordsU.filter(w => { const s = state.words[w.id]; return !s || isDue(s); });
-    const rest = wordsU.filter(w => !due.includes(w));
-    words = shuffle(due).concat(shuffle(rest)).slice(0, 8);
-    // Mini-Lernziele: Wörter doppelt fragen, damit eine Runde entsteht
-    if (words.length < 4 && words.length > 0) words = words.concat(shuffle(words));
+    const rest = wordsU.filter(w => due.indexOf(w) < 0);
+    picked = shuffle(due).sort((a, b) => priority(b) - priority(a)).concat(shuffle(rest)).slice(0, ROUND_UNIT);
+    target = ROUND_UNIT;
   } else if (mode === 'weak') {
-    words = shuffle(weakWords()).slice(0, 8);
+    picked = weakWords().slice(0, ROUND_WEAK);
+    target = ROUND_WEAK;
   } else if (mode === 'anyway') {
-    const scored = VOCAB.map(w => ({ w, s: state.words[w.id] }))
-      .sort((a, b) => (a.s ? a.s.box : 0) - (b.s ? b.s.box : 0));
-    words = shuffle(scored.slice(0, 12).map(x => x.w)).slice(0, 8);
+    picked = startedWords().sort((a, b) => priority(b) - priority(a)).slice(0, ROUND_TRAINING);
+    if (!picked.length) picked = VOCAB.slice(0, NEW_PER_ROUND);
+    target = ROUND_TRAINING;
   } else {
-    words = buildTrainingRound();
+    picked = planTraining().picked;
+    target = ROUND_TRAINING;
   }
+  const words = expandRound(picked, target);
   if (!words.length) { history.back(); return; }
 
   if (quiz && quiz.timer) clearTimeout(quiz.timer);
@@ -2054,8 +2147,11 @@ function startQuiz(mode, uk) {
 }
 
 function segbarHtml() {
-  return '<div class="segbar" aria-hidden="true">' +
-    quiz.segs.map(s => '<i class="' + s + '"></i>').join('') + '</div>';
+  const done = quiz.segs.filter(s => s).length;
+  return '<div class="segwrap">' +
+    '<div class="segbar" aria-hidden="true">' + quiz.segs.map(s => '<i class="' + s + '"></i>').join('') + '</div>' +
+    '<span class="q-count">' + done + ' / ' + quiz.len + '</span>' +
+  '</div>';
 }
 
 function renderQuestion() {
@@ -2189,7 +2285,7 @@ function applyResult(q, verdict) {
   refreshSegbar();
 }
 function refreshSegbar() {
-  const bar = $('.segbar', $('#scr-quiz'));
+  const bar = $('.segwrap', $('#scr-quiz'));
   if (bar) bar.outerHTML = segbarHtml();
 }
 
@@ -2408,36 +2504,19 @@ function closeSettings() {
 }
 function renderSettings() {
   const sheet = $('#sheet');
-  let voicesHtml;
-  if (!('speechSynthesis' in window)) {
-    voicesHtml = '<p class="set-note">Dieser Browser kann leider nicht vorlesen.</p>';
-  } else if (!TTS.voices.length) {
-    voicesHtml = '<p class="set-note">Keine französische Stimme gefunden. Auf dem Handy oder Tablet kann man in den Geräte-Einstellungen französische Stimmen laden. Die App funktioniert auch ohne Ton.</p>';
-  } else {
-    voicesHtml = TTS.voices.slice(0, 6).map((v, i) => {
-      const sel = TTS.voice && v.name === TTS.voice.name && v.lang === TTS.voice.lang;
-      return '<button class="voice-row' + (sel ? ' sel' : '') + '" data-i="' + i + '">' +
-        '<span class="dot" aria-hidden="true"></span>' +
-        '<span class="v-name"><b>Stimme ' + (i + 1) + ' · Französisch</b><span>' + esc(v.name) + '</span></span>' +
-        '<span class="test" data-test="' + i + '">Testen</span>' +
-      '</button>';
-    }).join('');
-  }
-
   sheet.innerHTML =
     '<div class="grab"></div>' +
     '<h3>Einstellungen</h3>' +
-    '<div class="set-group"><div class="g-lbl">Stimme</div>' +
-      (Object.keys(AUDIO).length
-        ? '<p class="set-note" style="margin:0 0 10px">Die Wörter haben eigene Aufnahmen einer französischen Stimme. Die Browser-Stimme unten wird nur als Ersatz benutzt.</p>'
-        : '') +
-      voicesHtml +
-      '<p class="set-note">Kein Ton? Prüfe den Stummschalter und die Lautstärke deines Geräts.</p>' +
+    '<div class="set-group"><div class="g-lbl">Name</div>' +
+      '<input class="name-input" id="set-name" type="text" maxlength="20" ' +
+        'autocomplete="off" spellcheck="false" aria-label="Dein Name" value="' + esc(userName()) + '">' +
+      '<p class="set-note">So begrüsst dich die App.</p>' +
     '</div>' +
     '<div class="set-group"><div class="g-lbl">Töne</div>' +
       '<div class="set-row"><span>Quiz-Töne</span>' +
         '<button class="switch' + (state.settings.sounds ? ' on' : '') + '" id="sw-sounds" role="switch" aria-checked="' + state.settings.sounds + '" aria-label="Quiz-Töne"></button>' +
       '</div>' +
+      '<p class="set-note">Kein Ton? Prüfe den Stummschalter und die Lautstärke deines Geräts.</p>' +
     '</div>' +
     '<div class="set-group"><div class="g-lbl">Farbe</div>' +
       '<div class="swatches">' +
@@ -2458,22 +2537,14 @@ function renderSettings() {
     '</div>' +
     '<button class="btn soft" id="sheet-close" style="width:100%">Fertig</button>';
 
-  $$('.voice-row', sheet).forEach(b => {
-    b.addEventListener('click', (e) => {
-      const i = Number(b.dataset.i);
-      const v = TTS.voices[i];
-      if (!v) return;
-      if (e.target.closest('.test')) { speakWith(v, 'Bonjour Nea!'); return; }
-      else {
-        TTS.voice = v;
-        state.settings.voiceName = v.name;
-        state.settings.voiceLang = v.lang;
-        save();
-        speak('Bonjour Nea!');
-      }
-      renderSettings();
-    });
+  const nameEl = $('#set-name');
+  nameEl.addEventListener('input', () => {
+    state.settings.name = nameEl.value.slice(0, 20);
+    save();
+    applyName();
   });
+  nameEl.addEventListener('blur', () => { nameEl.value = userName(); });
+  nameEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') nameEl.blur(); });
   $('#sw-sounds').addEventListener('click', () => {
     state.settings.sounds = !state.settings.sounds;
     save();
@@ -2509,6 +2580,7 @@ $('#backdrop').addEventListener('click', closeSettings);
 
 rollDay();
 applyAccent();
+applyName();
 renderHome();
 showScreen({ s: 'home', u: null });
 history.replaceState({ s: 'home', u: null }, '');
@@ -2517,6 +2589,8 @@ history.replaceState({ s: 'home', u: null }, '');
 window.__nea = {
   vocab: VOCAB, groups: GROUPS, uniteGroups: UNITE_GROUPS,
   grade, ws, promote, demote, audioSlug, canHear, flushSave, pickQType, getSel, setSel, selWords,
+  planTraining, expandRound, priority, trouble, weakWords, activeWords, userName,
+  ROUND_TRAINING, ACTIVE_LIMIT, NEW_PER_ROUND, MAX_REP,
   get quiz() { return quiz; },
   get state() { return state; },
   get tts() { return TTS; },
