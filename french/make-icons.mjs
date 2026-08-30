@@ -25,11 +25,11 @@ const DIR = dirname(fileURLToPath(import.meta.url));
 const FONT = pathToFileURL(join(DIR, 'manrope.woff2')).href;
 const COLOR = '#EE6C4D';     // Grundfarbe des Icons (Themenfarbe «coral»)
 
-// Gleiche Zeichnung wie LOGO in index.html
+// Gleiche Zeichnung wie LOGO in index.html: Sprechblase mit «é»
 const MARK = `
   <rect width="100" height="100" rx="24" fill="${COLOR}"/>
-  <text x="50" y="80" font-family="Manrope" font-weight="800" font-size="72" fill="#fff" text-anchor="middle">e</text>
-  <path d="M62 22l3.4 7.6L73 33l-7.6 3.4L62 44l-3.4-7.6L51 33l7.6-3.4z" fill="#F5B942"/>`;
+  <path d="M22 26h56a10 10 0 0 1 10 10v30a10 10 0 0 1-10 10H50L32 90V76h-10a10 10 0 0 1-10-10V36a10 10 0 0 1 10-10z" fill="#fff"/>
+  <text x="50" y="67" font-family="Manrope" font-weight="800" font-size="46" fill="${COLOR}" text-anchor="middle">é</text>`;
 
 const page = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
   @font-face { font-family: Manrope; src: url('${FONT}') format('woff2'); font-weight: 200 800; }

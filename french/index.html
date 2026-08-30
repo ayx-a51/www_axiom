@@ -1518,15 +1518,15 @@ const IC = {
 };
 const UNITE_ICON = { u1: IC.uS, u2: IC.fam, u3: IC.ball, u4: IC.apple };
 
-/* App-Logo: «é», dessen Accent aigu ein kleiner Funke ist.
-   Die Fläche nimmt die eingestellte Themenfarbe an.
+/* App-Logo: Sprechblase mit «é».
+   Fläche und Buchstabe nehmen die eingestellte Themenfarbe an.
    Passend dazu: french/apple-touch-icon.png und french/favicon.png
    (erzeugt mit make-icons.mjs — bei Änderungen dort neu rendern). */
 const LOGO =
   '<svg viewBox="0 0 100 100" aria-hidden="true">' +
     '<rect width="100" height="100" rx="24" fill="var(--primary)"/>' +
-    '<text x="50" y="80" font-family="Manrope, system-ui, sans-serif" font-weight="800" font-size="72" fill="#fff" text-anchor="middle">e</text>' +
-    '<path d="M62 22l3.4 7.6L73 33l-7.6 3.4L62 44l-3.4-7.6L51 33l7.6-3.4z" fill="#F5B942"/>' +
+    '<path d="M22 26h56a10 10 0 0 1 10 10v30a10 10 0 0 1-10 10H50L32 90V76h-10a10 10 0 0 1-10-10V36a10 10 0 0 1 10-10z" fill="#fff"/>' +
+    '<text x="50" y="67" font-family="Manrope, system-ui, sans-serif" font-weight="800" font-size="46" fill="var(--primary)" text-anchor="middle">é</text>' +
   '</svg>';
 
 function starRow(n, cls) {
